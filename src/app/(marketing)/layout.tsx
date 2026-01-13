@@ -32,13 +32,12 @@ function MarketingHeader() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">EMT</span>
-            </div>
-            <span className="font-bold text-lg text-white">
-              EMTChat
-            </span>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/emtchat-logo-dark.png"
+              alt="EMTChat"
+              className="h-10 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -154,13 +153,12 @@ function MarketingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">EMT</span>
-              </div>
-              <span className="font-bold text-lg text-white">
-                EMTChat
-              </span>
+            <Link href="/" className="flex items-center mb-4">
+              <img
+                src="/emtchat-logo-dark.png"
+                alt="EMTChat"
+                className="h-10 w-auto"
+              />
             </Link>
             <p className="text-sm text-gray-400">
               AI-powered knowledge base for Emergency Medical Technicians.

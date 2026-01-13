@@ -49,12 +49,18 @@ const mPlus2 = M_PLUS_2({
 //   description: 'Chat with your EMTChat documents.',
 // };
 
+// Marketing routes that have their own layout (no app header/IM)
+const MARKETING_ROUTES = ['/', '/features', '/pricing', '/signup', '/contact', '/about', '/privacy', '/terms', '/hipaa', '/docs', '/careers'];
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+
+  // Check if we're on a marketing page
+  const isMarketingPage = MARKETING_ROUTES.includes(pathname) || pathname.startsWith('/auth');
 
   // Global cleanup: Remove stale Radix UI portal elements on route changes
   // This prevents dialog overlays from persisting after navigation
@@ -106,9 +112,9 @@ export default function RootLayout({
                 >
                   <HelpProvider>
                     <ErrorBoundary>
-                      {/* IM Popup System - OUTSIDE AnimatePresence to persist across page navigation */}
+                      {/* IM Popup System - Only on app pages, not marketing */}
                       {/* This ensures voice/video calls don't drop when navigating between pages */}
-                      <AuthenticatedIMContainer />
+                      {!isMarketingPage && <AuthenticatedIMContainer />}
                       <AnimatePresence mode="wait">
                         <motion.div
                           key={pathname}
@@ -118,7 +124,8 @@ export default function RootLayout({
                         >
                           <div vaul-drawer-wrapper="" className="bg-background">
                             <div className="relative flex min-h-screen w-full flex-col">
-                              <Header />
+                              {/* Only show app header on non-marketing pages */}
+                              {!isMarketingPage && <Header />}
                               <main>
                                 {children}
                               </main>
