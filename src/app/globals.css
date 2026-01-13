@@ -799,10 +799,15 @@ input[type="reset"] {
   white-space: nowrap;
 }
 
-/* Right panel container - allow tabs to show */
-.emtchat-bg [class*="rounded-lg"][class*="bg-muted"] {
+/* Right panel container - allow tabs to show (exclude main chat area) */
+.emtchat-bg [class*="rounded-lg"][class*="bg-muted"]:not(main) {
   overflow: visible !important;
   margin-right: 8px !important;
+}
+
+/* Ensure main chat area scrolls properly */
+.emtchat-bg main {
+  overflow-y: auto !important;
 }
 
 /* Right panel - add padding */
