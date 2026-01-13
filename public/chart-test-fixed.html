@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chart.js Fixed Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body { font-family: system-ui; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #f5a623; }
+    .chart-container { background: #16213e; border-radius: 8px; padding: 20px; margin: 20px 0; height: 300px; }
+    .chart-row { display: flex; gap: 20px; }
+    .chart-half { flex: 1; }
+    .status { background: #0a0a1a; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0; }
+    .success { color: #4ecdc4; }
+    .error { color: #e94560; }
+  </style>
+</head>
+<body>
+  <h1>Chart.js Fixed Template Test</h1>
+  <div class="status" id="status">Loading...</div>
+
+  <div class="chart-row">
+    <div class="chart-half chart-container">
+      <h3>Bar Chart</h3>
+      <canvas id="chart1" width="400" height="250"></canvas>
+    </div>
+    <div class="chart-half chart-container">
+      <h3>Pie Chart</h3>
+      <canvas id="chart2" width="400" height="250"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <h3>Line Chart</h3>
+    <canvas id="chart3" width="800" height="250"></canvas>
+  </div>
+
+  <script>
+    var statusEl = document.getElementById('status');
+
+    function log(msg, isError) {
+      console.log(msg);
+      statusEl.innerHTML += '<div class="' + (isError ? 'error' : 'success') + '">' + msg + '</div>';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      log('DOMContentLoaded fired');
+      log('Chart.js available: ' + (typeof Chart !== 'undefined'));
+
+      if (typeof Chart === 'undefined') {
+        log('ERROR: Chart.js not loaded!', true);
+        return;
+      }
+
+      try {
+        // Chart 1: Bar
+        new Chart(document.getElementById('chart1'), {
+          type: 'bar',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{
+              label: 'Sales',
+              data: [12, 19, 15, 22],
+              backgroundColor: ['#f5a623', '#4ecdc4', '#e94560', '#45b7d1']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#eee' } } }, scales: { x: { ticks: { color: '#eee' } }, y: { ticks: { color: '#eee' } } } }
+        });
+        log('Bar chart created');
+
+        // Chart 2: Pie
+        new Chart(document.getElementById('chart2'), {
+          type: 'pie',
+          data: {
+            labels: ['Product A', 'Product B', 'Product C'],
+            datasets: [{
+              data: [40, 35, 25],
+              backgroundColor: ['#f5a623', '#4ecdc4', '#e94560']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#eee' } } } }
+        });
+        log('Pie chart created');
+
+        // Chart 3: Line
+        new Chart(document.getElementById('chart3'), {
+          type: 'line',
+          data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+            datasets: [{
+              label: 'Growth',
+              data: [10, 25, 20, 35, 45],
+              borderColor: '#4ecdc4',
+              backgroundColor: 'rgba(78, 205, 196, 0.2)',
+              fill: true
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#eee' } } }, scales: { x: { ticks: { color: '#eee' } }, y: { ticks: { color: '#eee' } } } }
+        });
+        log('Line chart created');
+
+        log('ALL CHARTS RENDERED SUCCESSFULLY!');
+
+      } catch (err) {
+        log('ERROR: ' + err.message, true);
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

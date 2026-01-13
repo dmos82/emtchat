@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chart.js Test - Debug</title>
+  <style>
+    body { font-family: system-ui; background: #1a1a2e; color: #eee; padding: 20px; }
+    .chart-container { background: #16213e; border-radius: 8px; padding: 20px; margin: 20px 0; height: 300px; }
+    .log { background: #0a0a1a; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
+    .log-entry { margin: 2px 0; }
+    .error { color: #e94560; }
+    .success { color: #4ecdc4; }
+    .info { color: #f5a623; }
+    button { background: #4ecdc4; color: #000; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+    button:hover { background: #3dbdb4; }
+  </style>
+</head>
+<body>
+  <h1>Chart.js Debug Test</h1>
+
+  <div class="log" id="debug-log"></div>
+
+  <div>
+    <button onclick="testDirectLoad()">Test 1: Direct Load</button>
+    <button onclick="testDocumentWrite()">Test 2: document.write Simulation</button>
+    <button onclick="openAboutBlank()">Test 3: Open in about:blank</button>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="testChart" width="400" height="250"></canvas>
+  </div>
+
+  <script>
+    function log(msg, type = 'info') {
+      const logEl = document.getElementById('debug-log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry ' + type;
+      entry.textContent = new Date().toISOString().slice(11, 19) + ' - ' + msg;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
+    }
+
+    // Test 1: Direct dynamic loading on this page
+    function testDirectLoad() {
+      log('Test 1: Starting direct Chart.js load...', 'info');
+
+      if (typeof Chart !== 'undefined') {
+        log('Chart.js already loaded, creating chart...', 'success');
+        createChart();
+        return;
+      }
+
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+      script.onload = function() {
+        log('Chart.js loaded successfully! typeof Chart = ' + typeof Chart, 'success');
+        createChart();
+      };
+      script.onerror = function(e) {
+        log('FAILED to load Chart.js: ' + JSON.stringify(e), 'error');
+      };
+      document.head.appendChild(script);
+      log('Script tag appended to head', 'info');
+    }
+
+    function createChart() {
+      log('Creating chart...', 'info');
+      try {
+        var canvas = document.getElementById('testChart');
+        log('Canvas element: ' + (canvas ? 'FOUND' : 'NOT FOUND'), canvas ? 'success' : 'error');
+
+        if (!canvas) return;
+
+        var ctx = canvas.getContext('2d');
+        log('2D context: ' + (ctx ? 'OBTAINED' : 'FAILED'), ctx ? 'success' : 'error');
+
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{
+              label: 'Sales',
+              data: [12, 19, 15, 22],
+              backgroundColor: ['#f5a623', '#4ecdc4', '#e94560', '#45b7d1']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        log('Chart created successfully!', 'success');
+      } catch (err) {
+        log('ERROR creating chart: ' + err.message, 'error');
+        log('Stack: ' + err.stack, 'error');
+      }
+    }
+
+    // Test 2: Simulate document.write behavior
+    function testDocumentWrite() {
+      log('Test 2: This would replace the entire document - not running', 'info');
+      log('Use Test 3 instead to see about:blank behavior', 'info');
+    }
+
+    // Test 3: Open in about:blank with document.write
+    function openAboutBlank() {
+      log('Test 3: Opening new window with document.write...', 'info');
+
+      var html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>about:blank Chart Test</title>
+  <style>
+    body { font-family: system-ui; background: #1a1a2e; color: #eee; padding: 20px; }
+    .chart-container { background: #16213e; border-radius: 8px; padding: 20px; margin: 20px 0; height: 300px; }
+    #debug { background: #0a0a1a; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>about:blank Chart Test</h1>
+  <div id="debug">Loading...</div>
+  <div class="chart-container">
+    <canvas id="chart1" width="400" height="250"></canvas>
+  </div>
+  <script>
+    var debug = document.getElementById('debug');
+    function log(msg) {
+      debug.textContent += '\\n' + msg;
+      console.log(msg);
+    }
+
+    log('Script started');
+    log('Location: ' + window.location.href);
+    log('Document domain: ' + document.domain);
+
+    function loadChartJS(callback) {
+      log('Creating script element...');
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+
+      script.onload = function() {
+        log('Chart.js loaded! typeof Chart = ' + typeof Chart);
+        setTimeout(callback, 100);
+      };
+
+      script.onerror = function(e) {
+        log('ERROR: Failed to load Chart.js');
+        log('Event: ' + JSON.stringify({type: e.type, target: e.target?.src}));
+      };
+
+      document.head.appendChild(script);
+      log('Script appended to head');
+    }
+
+    function initChart() {
+      log('initChart called');
+      try {
+        var canvas = document.getElementById('chart1');
+        log('Canvas: ' + (canvas ? 'found' : 'NOT FOUND'));
+
+        if (!canvas) return;
+
+        log('Creating Chart...');
+        new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: ['A', 'B', 'C', 'D'],
+            datasets: [{
+              label: 'Test Data',
+              data: [10, 20, 15, 25],
+              backgroundColor: ['#f5a623', '#4ecdc4', '#e94560', '#45b7d1']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        log('SUCCESS! Chart created');
+      } catch (err) {
+        log('ERROR: ' + err.message);
+        log('Stack: ' + err.stack);
+      }
+    }
+
+    loadChartJS(initChart);
+  <\/script>
+</body>
+</html>`;
+
+      var newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(html);
+        newWindow.document.close();
+        log('HTML written to new window', 'success');
+      } else {
+        log('Failed to open new window (popup blocked?)', 'error');
+      }
+    }
+
+    log('Test page loaded. Click buttons to test.', 'info');
+  </script>
+</body>
+</html>

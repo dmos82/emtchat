@@ -1,0 +1,1831 @@
+'use client';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Sidebar from '@/components/layout/Sidebar';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { PanelLeftClose, PanelRightClose, Moon, Sun, Send, HelpCircle, ChevronRight, MoreVertical, Copy, Download, FileType, FileText, Save, Check } from 'lucide-react';
+import { UnifiedSearchToggle } from '@/components/ui/UnifiedSearchToggle';
+import { useSearchMode } from '@/contexts/SearchModeContext';
+import { useHelp } from '@/contexts/HelpContext';
+import { useTheme } from 'next-themes';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/useAuth';
+import { usePersona } from '@/contexts/PersonaContext';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { DocumentViewer } from '@/components/common/DocumentViewer';
+import { getApiBaseUrl } from '@/lib/config';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/components/ui/use-toast';
+import { ChatSummary } from '@/types'; // Ensure ChatSummary is imported
+import debounce from 'lodash.debounce'; // <-- ADD: Import debounce
+import ChatInterface from '@/components/ChatInterface';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import FileTreeView from '@/components/layout/FileTreeView';
+import ChatNotesPanel from '@/components/layout/ChatNotesPanel';
+import FileTreeManager from '@/components/admin/FileTreeManager';
+import { MobileNav } from '@/components/layout/MobileNav';
+import ChatSearchModal from '@/components/search/ChatSearchModal';
+import { CanvasPanel, CanvasType } from '@/components/canvas';
+
+// Define SourceDocument type
+interface SourceDocument {
+  documentId?: string;
+  fileName?: string;
+  type?: 'user' | 'system'; // Ensure type is defined here
+  score?: number; // Score might still be present in older data
+  keywordMatch?: boolean;
+}
+
+// Define Message interface
+interface Message {
+  _id: string; // Use _id to match MongoDB convention
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: SourceDocument[]; // Ensure this uses SourceDocument with type
+  metadata?: {
+    tokenUsage: {
+      prompt: number;
+      completion: number;
+      total: number;
+    };
+    cost: number;
+    modelUsed?: string;
+  };
+  modelUsed?: string; // Which AI model generated the response
+}
+
+// --- ADDED: Define Chat interface for frontend state ---
+interface SavedCanvas {
+  _id: string;
+  type: 'code' | 'document' | 'diagram' | 'html' | 'chart';
+  title: string;
+  content: string;
+  language?: string;
+  createdAt: string;
+}
+
+interface AutoSavedCanvas {
+  type: 'code' | 'document' | 'diagram' | 'html' | 'chart';
+  title: string;
+  content: string;
+  language?: string;
+  updatedAt: string;
+}
+
+interface Chat {
+  _id: string;
+  userId: string; // Or Types.ObjectId if needed on frontend
+  chatName: string;
+  createdAt: string; // Use string for simplicity, format as needed
+  updatedAt: string;
+  messages: Message[];
+  notes?: string | null; // Added optional notes field
+  autoSavedCanvas?: AutoSavedCanvas; // Auto-saved canvas (single, overwrites)
+  canvases?: SavedCanvas[]; // User-saved canvas artifacts (array, preserved)
+}
+// --- END ADDITION ---
+
+// Define UserDocument type for this page (might differ from backend model slightly)
+interface UserDocumentDisplay {
+  _id: string;
+  originalFileName: string;
+  // Add other fields if needed for display, like status or date
+}
+
+// Progressive assistant status messages
+const PROGRESS_MESSAGES = [
+  'Working on it...',
+  'Still thinking...',
+  'Almost there...',
+  'Generating response...',
+];
+const PROGRESS_INTERVAL_MS = 10000; // 10s
+
+export default function Home() {
+  const { user, isLoading: loading, logout } = useAuth();
+  const { theme, systemTheme } = useTheme();
+  const { activePersona } = usePersona();
+  const { settings, refreshSettings } = useUserSettings();
+  const { toast } = useToast(); // Initialize toast
+  const { searchMode } = useSearchMode(); // Use the new unified search mode
+  const { isHelpModeEnabled, toggleHelpMode } = useHelp(); // Help Mode toggle
+
+  // State for UI elements
+  const [chats, setChats] = React.useState<ChatSummary[]>([]); // <-- SPECIFY TYPE HERE
+  const [selectedChatIdFromSidebar, setSelectedChatIdFromSidebar] = React.useState<string | null>(
+    null
+  ); // Chat selected in sidebar
+  const [isLoadingChats, setIsLoadingChats] = React.useState(false); // Loading indicator for sidebar chats
+  const [activeView, setActiveView] = React.useState<'chat' | 'docs'>('chat'); // Sidebar view toggle
+  const [isAlertAllOpen, setIsAlertAllOpen] = React.useState(false); // Delete all chats confirmation
+
+  // State for main chat interface
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const { theme: themeFromContext, setTheme } = useTheme();
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [expandedModelIds, setExpandedModelIds] = useState<Set<number>>(new Set());
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  // State for chat persistence
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true); // Track initial history load
+
+  // --- ADDED: State to hold full data of the selected chat ---
+  const [selectedChatData, setSelectedChatData] = useState<Chat | null>(null);
+  // --- END ADDITION ---
+
+  // State for document viewer
+  const [selectedDocument, setSelectedDocument] = useState<{
+    id: string;
+    filename: string;
+    type: 'user' | 'system';
+  } | null>(null);
+
+  // Use the unified search mode (no local state needed)
+  const isUserDocsSelected = searchMode === 'user-docs';
+
+  // --- ADDED: State for notes saving loading indicator ---
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  // --- END ADDITION ---
+
+  // --- ADDED: State for new chat notes (before chat is created) ---
+  const [newChatNotes, setNewChatNotes] = useState<string>('');
+  // --- END ADDITION ---
+
+  // --- ADDED: State to track selected tab in right sidebar ---
+  const [selectedTab, setSelectedTab] = useState<string>('notes');
+  // --- END ADDITION ---
+
+  // --- ADDED: State for chat search modal ---
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  // --- END ADDITION ---
+
+  // --- ADDED: State for assistant progress message ---
+  const [assistantProgressMsg, setAssistantProgressMsg] = useState<Message | null>(null);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // --- END ADDITION ---
+
+  // --- ADDED: State for message export feature ---
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [savingMessageId, setSavingMessageId] = useState<string | null>(null);
+  // --- END ADDITION ---
+
+  // --- ADDED: Canvas state for AI Canvas feature ---
+  const [canvasContent, setCanvasContent] = useState<string>('');
+  const [canvasType, setCanvasType] = useState<CanvasType>(null);
+  const [canvasLanguage, setCanvasLanguage] = useState<string>('');
+  const [canvasTitle, setCanvasTitle] = useState<string>('');
+  const [isCanvasStreaming, setIsCanvasStreaming] = useState(false);
+  const [useCanvasMode, setUseCanvasMode] = useState(true); // Toggle for canvas-enabled streaming
+
+  // Refs to track canvas data during streaming for auto-save
+  const canvasDataRef = useRef<{
+    type: CanvasType;
+    content: string;
+    title: string;
+    language: string;
+    wasGenerated: boolean;
+  }>({ type: null, content: '', title: '', language: '', wasGenerated: false });
+  // --- END ADDITION ---
+
+  // Load user settings on component mount
+  useEffect(() => {
+    if (user && !loading) {
+      console.log('[ChatPage] User authenticated, loading user settings');
+      refreshSettings().catch(err => {
+        console.error('[ChatPage] Failed to load user settings:', err);
+      });
+    }
+  }, [user, loading, refreshSettings]);
+
+  // Debug log active persona state
+  useEffect(() => {
+    console.log('[ChatPage] Active persona state:', activePersona);
+  }, [activePersona]);
+
+  // --- Effects ---
+
+  // Load Latest Chat Effect
+  useEffect(() => {
+    const loadLatestChat = async () => {
+      if (!user) {
+        console.log('[ChatPage Load] No user object available, cannot load history.');
+        setIsLoadingHistory(false);
+        return;
+      }
+
+      setIsLoadingHistory(true);
+      console.log('[ChatPage Load] Attempting to load latest chat...');
+
+      try {
+        const response = await fetchWithAuth('/api/chats/latest', {
+          method: 'GET',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.chat) {
+            console.log(
+              `[ChatPage Load] Loaded latest chat: ${data.chat._id}, Messages: ${data.chat.messages?.length || 0}`
+            );
+            const loadedMessages = (data.chat.messages || []).map((msg: any, index: number) => ({
+              _id: msg._id,
+              role: msg.role,
+              content: msg.content,
+              sources: msg.sources,
+              metadata: msg.metadata,
+              modelUsed: msg.metadata?.modelUsed || msg.modelUsed, // Support both locations
+            }));
+            setMessages(loadedMessages);
+            setCurrentChatId(data.chat._id);
+            setSelectedChatData(data.chat); // <-- ADDED: Store full chat data
+            setSelectedChatIdFromSidebar(data.chat._id); // <-- ADDED: Sync sidebar selection
+
+            // Load canvas data if available (auto-saved)
+            const autoCanvas = data.chat.autoSavedCanvas;
+            if (autoCanvas && autoCanvas.content) {
+              console.log('[ChatPage Load] Loading auto-saved canvas:', autoCanvas.title);
+              setCanvasType(autoCanvas.type);
+              setCanvasTitle(autoCanvas.title || 'Untitled');
+              setCanvasContent(autoCanvas.content);
+              setCanvasLanguage(autoCanvas.language || '');
+              setIsCanvasStreaming(false);
+            }
+          } else {
+            console.log('[ChatPage Load] No previous chat session found.');
+            setMessages([]);
+            setCurrentChatId(null);
+            setSelectedChatData(null); // Clear chat data if none found
+          }
+        } else if (response.status === 401) {
+          console.warn('[ChatPage Load] Received 401 Unauthorized. Logging out.');
+          await logout();
+        } else {
+          console.error('[ChatPage Load] API Error:', response.status, response.statusText);
+          setMessages([]);
+          setCurrentChatId(null);
+          setSelectedChatData(null); // Clear chat data on error
+        }
+      } catch (error) {
+        console.error('[ChatPage Load] Fetch Error:', error);
+        setMessages([]);
+        setCurrentChatId(null);
+        setSelectedChatData(null); // Clear chat data on error
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    if (!loading && user) {
+      loadLatestChat();
+    } else if (!loading && !user) {
+      // Handle case where auth is resolved but there's no user
+      setIsLoadingHistory(false);
+      setMessages([]);
+      setCurrentChatId(null);
+      setSelectedChatData(null); // Clear chat data if no user
+    }
+  }, [user, loading, logout]);
+
+  // --- ADDED: Function to fetch chat list ---
+  const fetchChatList = useCallback(async () => {
+    if (!user) {
+      console.log('[fetchChatList] No user available');
+      setIsLoadingChats(false);
+      setChats([]);
+      return;
+    }
+
+    setIsLoadingChats(true);
+    console.log('[fetchChatList] Fetching chat list...');
+
+    try {
+      const response = await fetchWithAuth('/api/chats', {
+        method: 'GET',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.chats) {
+          console.log(`[fetchChatList] Loaded chats: ${data.chats.length}`);
+          setChats(data.chats);
+        } else {
+          console.log('[fetchChatList] No chats found.');
+          setChats([]);
+        }
+      } else if (response.status === 401) {
+        console.warn('[fetchChatList] Received 401 Unauthorized. Logging out.');
+        await logout();
+      } else {
+        console.error('[fetchChatList] API Error:', response.status, response.statusText);
+        setChats([]);
+      }
+    } catch (error) {
+      console.error('[fetchChatList] Fetch Error:', error);
+      setChats([]);
+    } finally {
+      setIsLoadingChats(false);
+    }
+  }, [user, logout]);
+
+  // --- START ADDITION: Fetch Chat List Effect ---
+  useEffect(() => {
+    console.log('[ChatPage List Effect Hook RUNS]', { user: !!user, loading });
+
+    if (!loading && user) {
+      console.log('[ChatPage List Effect] Condition MET, calling fetchChatList...');
+      fetchChatList();
+    } else {
+      console.log('[ChatPage List Effect] Condition NOT MET.', { loading, user: !!user });
+      setIsLoadingChats(false);
+      setChats([]);
+    }
+  }, [user, loading, fetchChatList, currentChatId]);
+  // --- END ADDITION: Fetch Chat List Effect ---
+
+  // Auto-scroll Effect
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Note: Search mode persistence is now handled by SearchModeContext
+
+  // --- Handlers ---
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setCurrentChatId(null);
+    setSelectedChatData(null);
+    setSelectedChatIdFromSidebar(null);
+    setInputValue('');
+    setNewChatNotes(''); // Clear new chat notes
+    // Clear canvas state when starting new chat
+    setCanvasContent('');
+    setCanvasType(null);
+    setCanvasTitle('');
+    setCanvasLanguage('');
+    setIsCanvasStreaming(false);
+    canvasDataRef.current = { type: null, content: '', title: '', language: '', wasGenerated: false };
+    console.log('[ChatPage] New Chat started');
+  };
+
+  // --- START MODIFICATION: Replace handleSelectChat with implementation + logging ---
+  const handleSelectChat = useCallback(
+    async (id: string) => {
+      console.log(`[handleSelectChat] Clicked. Attempting to load chat ID: ${id}`);
+
+      if (!user || !id || id === currentChatId) {
+        console.log(`[handleSelectChat] Skipping load. Reason:`, {
+          hasUser: !!user,
+          idExists: !!id,
+          isAlreadyCurrent: id === currentChatId,
+        });
+        return;
+      }
+
+      setIsLoadingHistory(true); // Indicate loading
+      setMessages([]); // Clear previous messages immediately
+
+      console.log(`[handleSelectChat] Fetching URL: /api/chats/${id}`);
+
+      try {
+        const response = await fetchWithAuth(`/api/chats/${id}`, {
+          method: 'GET',
+        });
+
+        console.log(`[handleSelectChat] API Response Status for chat ${id}: ${response.status}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(
+            `[handleSelectChat] API Response Data for chat ${id}:`,
+            JSON.stringify(data, null, 2)
+          );
+
+          if (data.success && data.chat) {
+            const messagesFromServer = data.chat.messages || [];
+            const loadedMessages = messagesFromServer.map((msg: any, index: number) => ({
+              _id: msg._id,
+              role: msg.role,
+              content: msg.content,
+              sources: msg.sources,
+              metadata: msg.metadata,
+              modelUsed: msg.metadata?.modelUsed || msg.modelUsed, // Support both locations
+            }));
+            console.log(
+              `[handleSelectChat] Setting messages (count: ${loadedMessages.length}) and currentChatId to ${data.chat._id}`
+            );
+            setMessages(loadedMessages);
+            setCurrentChatId(data.chat._id); // Set the selected chat as current
+            setInputValue(''); // Clear input when loading a chat
+            setSelectedChatData(data.chat); // <-- ADDED: Store full chat data
+            setSelectedChatIdFromSidebar(data.chat._id); // Update sidebar selection state
+
+            // Load canvas data if available (auto-saved or from canvases array)
+            const autoCanvas = data.chat.autoSavedCanvas;
+            if (autoCanvas && autoCanvas.content) {
+              console.log('[handleSelectChat] Loading auto-saved canvas:', autoCanvas.title);
+              setCanvasType(autoCanvas.type);
+              setCanvasTitle(autoCanvas.title || 'Untitled');
+              setCanvasContent(autoCanvas.content);
+              setCanvasLanguage(autoCanvas.language || '');
+              setIsCanvasStreaming(false);
+              canvasDataRef.current = {
+                type: autoCanvas.type,
+                content: autoCanvas.content,
+                title: autoCanvas.title || 'Untitled',
+                language: autoCanvas.language || '',
+                wasGenerated: false,
+              };
+            } else {
+              // Clear canvas if no auto-saved canvas
+              setCanvasType(null);
+              setCanvasTitle('');
+              setCanvasContent('');
+              setCanvasLanguage('');
+              setIsCanvasStreaming(false);
+              canvasDataRef.current = { type: null, content: '', title: '', language: '', wasGenerated: false };
+            }
+          } else {
+            console.error(`[handleSelectChat] Failed to load chat ${id} or invalid data:`, data);
+            handleNewChat(); // Reset to new chat state on failure
+          }
+        } else {
+          const errorText = await response.text(); // Read error text
+          console.error(
+            `[handleSelectChat] API Error Status: ${response.status}, Text: ${errorText}`
+          );
+          if (response.status === 401) {
+            console.warn('[handleSelectChat] Received 401 Unauthorized. Logging out.');
+            await logout();
+          } else if (response.status === 404) {
+            console.warn(`[handleSelectChat] Chat ${id} not found (404). Starting new chat.`);
+          } else {
+            console.error(`[handleSelectChat] Unhandled API Error Status: ${response.status}`);
+          }
+          handleNewChat(); // Reset to new chat state on error
+        }
+      } catch (error) {
+        console.error(`[handleSelectChat] Fetch Exception loading chat ${id}:`, error);
+        handleNewChat(); // Reset to new chat state on error
+      } finally {
+        console.log(
+          `[handleSelectChat] Finished loading attempt for chat ${id}. Setting isLoadingHistory to false.`
+        );
+        setIsLoadingHistory(false); // Reset loading state
+      }
+    },
+    [
+      user,
+      currentChatId,
+      logout,
+      setIsLoadingHistory,
+      setMessages,
+      setCurrentChatId,
+      setInputValue,
+      setSelectedChatIdFromSidebar,
+      handleNewChat,
+    ]
+  );
+  // --- END MODIFICATION: Replace handleSelectChat ---
+
+  // --- START MODIFICATION: Implement handleConfirmDelete ---
+  const handleConfirmDelete = useCallback(
+    async (id: string) => {
+      if (!user || !id) {
+        console.error('[handleConfirmDelete] Missing user or chat ID.');
+        return;
+      }
+
+      // Use window.confirm for simplicity
+      if (!window.confirm(`Are you sure you want to delete this chat? This cannot be undone.`)) {
+        console.log('[handleConfirmDelete] User cancelled delete for chat:', id);
+        return;
+      }
+
+      console.log(`[handleConfirmDelete] Attempting to delete chat: ${id}`);
+      let apiSucceeded = false; // Flag to track API success
+
+      try {
+        console.log(`[handleConfirmDelete] Sending DELETE request to: /api/chats/${id}`);
+        const response = await fetchWithAuth(`/api/chats/${id}`, {
+          method: 'DELETE',
+        });
+
+        console.log(`[handleConfirmDelete] API Response Status: ${response.status}`); // Log Status
+
+        if (response.ok) {
+          apiSucceeded = true; // Mark as success
+          console.log(`[handleConfirmDelete] Successfully deleted chat on backend: ${id}`);
+          // Update frontend state
+          setChats(prevChats => {
+            console.log(
+              '[handleConfirmDelete] Updating chats state. Previous length:',
+              prevChats.length
+            );
+            const newChats = prevChats.filter(chat => chat._id !== id);
+            console.log('[handleConfirmDelete] New chats state length:', newChats.length);
+            return newChats;
+          });
+
+          // If the deleted chat was the currently active one, reset view
+          if (currentChatId === id) {
+            console.log(
+              '[handleConfirmDelete] Deleted the active chat, resetting to new chat view.'
+            );
+            handleNewChat();
+          } else {
+            setSelectedChatIdFromSidebar(null);
+          }
+          toast({ title: 'Success', description: 'Chat deleted successfully.' }); // Added success toast
+        } else {
+          const errorText = await response.text();
+          console.error(
+            `[handleConfirmDelete] API Error deleting chat ${id}: ${response.status}`,
+            errorText
+          );
+          toast({
+            title: 'Error',
+            description: `Failed to delete chat (${response.status})`,
+            variant: 'destructive',
+          }); // Added error toast
+          if (response.status === 401) {
+            await logout();
+          }
+        }
+      } catch (error) {
+        console.error(`[handleConfirmDelete] Fetch error deleting chat ${id}:`, error);
+        toast({
+          title: 'Error',
+          description: 'Network error during deletion.',
+          variant: 'destructive',
+        }); // Added fetch error toast
+      } finally {
+        console.log(
+          `[handleConfirmDelete] Finished delete attempt for ${id}. API Success: ${apiSucceeded}`
+        );
+        // Optional: Add loading state management here if needed
+      }
+    },
+    [user, setChats, currentChatId, handleNewChat, logout, setSelectedChatIdFromSidebar, toast]
+  ); // Added toast
+  // --- END MODIFICATION: Implement handleConfirmDelete ---
+
+  // --- START MODIFICATION: Implement handleDeleteAllChats ---
+  const handleDeleteAllChats = useCallback(async () => {
+    if (!user) {
+      console.error('No authenticated user available to delete chats.');
+      // Optionally show an error to the user
+      return;
+    }
+
+    // Confirmation Dialog
+    if (
+      !window.confirm(
+        'Are you sure you want to delete ALL your chat history? This cannot be undone.'
+      )
+    ) {
+      console.log('User cancelled delete all chats.');
+      return;
+    }
+
+    console.log('[handleDeleteAllChats] Attempting to delete all chats...');
+    setIsLoadingChats(true); // Indicate loading state (optional but good UX)
+
+    try {
+      const response = await fetchWithAuth('/api/chats', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[handleDeleteAllChats] Successfully deleted all chats.', data);
+        // Reset frontend state to reflect deletion
+        setMessages([]);
+        setCurrentChatId(null);
+        setChats([]); // Clear the sidebar list state as well
+        // Optionally show success notification
+      } else {
+        const errorText = await response.text();
+        console.error(
+          `[handleDeleteAllChats] API Error: ${response.status} ${response.statusText}`,
+          errorText
+        );
+        // Optionally show error notification
+      }
+    } catch (error) {
+      console.error('[handleDeleteAllChats] Fetch Error:', error);
+      // Optionally show error notification
+    } finally {
+      setIsLoadingChats(false); // Reset loading state
+    }
+    // Add relevant dependencies
+  }, [user, setMessages, setCurrentChatId, setChats, setIsLoadingChats]); // Added setIsLoadingChats
+  // --- END MODIFICATION: Implement handleDeleteAllChats ---
+
+  // Update function signature and state setting
+  const handleDocumentSelect = (documentId: string, filename: string, type: 'user' | 'system') => {
+    console.log(
+      '[ChatPage] Selected document for viewing (from chat source):',
+      documentId,
+      filename,
+      type
+    ); // Log type
+    setSelectedDocument({ id: documentId, filename: filename, type: type }); // Store type
+  };
+
+  // Create a separate handler for clicks from the SystemKbList which only provides id and filename
+  const handleSystemKbSelect = (documentId: string, filename: string) => {
+    console.log(
+      '[ChatPage] Selected document for viewing (from System KB list):',
+      documentId,
+      filename
+    );
+    // Removed debug logs for System KB document selection
+
+    // Assume documents selected from this list are always 'system' type
+    setSelectedDocument({ id: documentId, filename: filename, type: 'system' });
+
+    // Removed setTimeout debug log for state update
+  };
+
+  const handleCloseViewer = () => {
+    console.log('[ChatPage] Closing PDF viewer');
+    setSelectedDocument(null);
+  };
+
+  // --- ADDED: Export handlers for message three-dot menu ---
+  const handleCopyToClipboard = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast({ title: 'Error', description: 'Failed to copy to clipboard', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadMessage = async (text: string, format: 'pdf' | 'docx' | 'txt', title?: string) => {
+    try {
+      const response = await fetchWithAuth('/api/export/download', {
+        method: 'POST',
+        body: JSON.stringify({
+          content: text,
+          title: title || 'GKChatty Response',
+          format,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `export.${format}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) filename = match[1];
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast({ title: 'Error', description: 'Failed to download file', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveToDocuments = async (text: string, format: 'pdf' | 'docx' | 'txt', messageId: string, title?: string) => {
+    try {
+      setSavingMessageId(messageId);
+      const response = await fetchWithAuth('/api/export/save-to-documents', {
+        method: 'POST',
+        body: JSON.stringify({
+          content: text,
+          title: title || 'GKChatty Response',
+          format,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message || 'Save failed');
+      }
+
+      toast({ title: 'Success', description: 'Saved to My Documents' });
+      setTimeout(() => setSavingMessageId(null), 2000);
+    } catch (err) {
+      console.error('Save to documents failed:', err);
+      toast({ title: 'Error', description: 'Failed to save to documents', variant: 'destructive' });
+      setSavingMessageId(null);
+    }
+  };
+  // --- END ADDITION ---
+
+  // --- ADDED: Function to create chat from notes ---
+  const createChatFromNotes = useCallback(
+    async (notes: string) => {
+      console.log('[createChatFromNotes] Creating new chat with initial notes...');
+      setIsSavingNotes(true);
+
+      try {
+        const response = await fetchWithAuth('/api/chats', {
+          method: 'POST',
+          body: JSON.stringify({
+            isNotesInitiated: true,
+            initialChatName: 'New Chat with Notes',
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || `Failed to create chat (HTTP ${response.status})`);
+        }
+
+        console.log(`[createChatFromNotes] Chat created successfully: ${result.chatId}`);
+
+        // Set the newly created chat as current
+        const newChat: Chat = {
+          _id: result.chatId,
+          userId: user!._id,
+          chatName: result.chatName,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [],
+          notes: '',
+        };
+
+        setCurrentChatId(result.chatId);
+        setSelectedChatData(newChat);
+        setSelectedChatIdFromSidebar(result.chatId);
+
+        // Refresh chat list to include new chat
+        fetchChatList();
+
+        // Now save the notes to the newly created chat
+        return result.chatId;
+      } catch (error: any) {
+        console.error('[createChatFromNotes] Error creating chat:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error Creating Chat',
+          description: error.message,
+        });
+        return null;
+      } finally {
+        setIsSavingNotes(false);
+      }
+    },
+    [user, fetchChatList, toast]
+  );
+
+  // --- ADDED: Handler to save notes via API ---
+  const handleSaveNotes = useCallback(
+    async (chatId: string | null, notes: string) => {
+      // Handle new chat notes (when chatId is null)
+      if (!chatId) {
+        console.log('[handleSaveNotes] No chatId, storing notes locally for new chat...');
+        setNewChatNotes(notes);
+
+        // If notes are not empty, create a chat automatically
+        if (notes.trim()) {
+          const newChatId = await createChatFromNotes(notes);
+          if (newChatId) {
+            // Continue with saving notes to the newly created chat
+            return handleSaveNotes(newChatId, notes);
+          }
+        }
+        return;
+      }
+
+      console.log(`[handleSaveNotes] Saving notes for chat ${chatId}...`);
+      setIsSavingNotes(true);
+
+      try {
+        const response = await fetchWithAuth(`/api/chats/${chatId}/notes`, {
+          method: 'PATCH',
+          body: JSON.stringify({ notes }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || `Failed to save notes (HTTP ${response.status})`);
+        }
+
+        console.log(`[handleSaveNotes] Notes saved successfully for chat ${chatId}.`);
+
+        // Update selectedChatData state locally
+        setSelectedChatData(prev => (prev ? { ...prev, notes } : null));
+      } catch (error: any) {
+        console.error(`[handleSaveNotes] Error saving notes for chat ${chatId}:`, error);
+        toast({ variant: 'destructive', title: 'Error Saving Notes', description: error.message });
+      } finally {
+        setIsSavingNotes(false);
+      }
+    },
+    [createChatFromNotes, toast]
+  );
+
+  // --- ADD: Debounced Save Notes Function ---
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSaveNotes = useCallback(
+    debounce((chatId: string | null, notes: string) => {
+      handleSaveNotes(chatId, notes);
+    }, 1500), // 1500ms delay
+    [handleSaveNotes] // Dependency array includes the memoized save function
+  );
+  // --- END ADD ---
+
+  // --- ADDED: Canvas streaming function using SSE ---
+  const handleSendMessageWithCanvas = useCallback(
+    async (input: string) => {
+      if (!input.trim() || isSending || !user) return;
+
+      setIsSending(true);
+
+      // Clear any previous canvas data
+      setCanvasContent('');
+      setCanvasType(null);
+      setCanvasTitle('');
+      setCanvasLanguage('');
+      setIsCanvasStreaming(false);
+      canvasDataRef.current = { type: null, content: '', title: '', language: '', wasGenerated: false };
+
+      const tempUserMessageId = `user-${Date.now()}`;
+      const userMessage: Message = {
+        _id: tempUserMessageId,
+        role: 'user',
+        content: input.trim(),
+      };
+      setMessages(prevMessages => [...prevMessages, userMessage]);
+      setInputValue('');
+
+      console.log('[ChatPage Canvas] Starting canvas-enabled SSE stream');
+
+      const requestBody = {
+        query: input.trim(),
+        history: messages.map(m => ({ role: m.role, content: m.content })),
+        searchMode: searchMode,
+        activePersonaId: activePersona?._id || null,
+        chatId: currentChatId || null,
+      };
+
+      try {
+        // Get auth token for SSE request (stored as 'accessToken' by fetchWithAuth)
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          throw new Error('No authentication token');
+        }
+
+        const apiUrl = getApiBaseUrl();
+        const response = await fetch(`${apiUrl}/api/chats/stream-with-canvas`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No response body');
+        }
+
+        const decoder = new TextDecoder();
+        let chatContent = '';
+        let currentCanvasContent = '';
+        let assistantMessageId = `assistant-${Date.now()}`;
+        let receivedChatId: string | null = null;
+        let modelUsed: string | undefined;
+
+        // SSE parsing state - standard SSE format has separate event: and data: lines
+        let sseBuffer = '';
+
+        // Helper to process a complete SSE event
+        const processSSEEvent = (eventType: string, dataStr: string) => {
+          console.log('[ChatPage Canvas] SSE Event:', eventType, dataStr.substring(0, 100));
+
+          // Parse the data - it might be JSON or plain text
+          let eventData: unknown = dataStr;
+          try {
+            eventData = JSON.parse(dataStr);
+          } catch {
+            // Plain text data, use as-is
+          }
+
+          switch (eventType) {
+            case 'chat:chunk':
+              // For chat:chunk, data is plain text
+              chatContent += dataStr;
+              // Update assistant message with streaming content
+              setMessages(prev => {
+                const existing = prev.find(m => m._id === assistantMessageId);
+                if (existing) {
+                  return prev.map(m =>
+                    m._id === assistantMessageId
+                      ? { ...m, content: chatContent }
+                      : m
+                  );
+                } else {
+                  return [...prev, {
+                    _id: assistantMessageId,
+                    role: 'assistant' as const,
+                    content: chatContent,
+                  }];
+                }
+              });
+              break;
+
+            case 'canvas:start':
+              console.log('[ChatPage Canvas] Canvas started:', eventData);
+              setIsCanvasStreaming(true);
+              const startData = eventData as { type?: string; title?: string; language?: string };
+              setCanvasType((startData?.type as CanvasType) || 'code');
+              setCanvasTitle(startData?.title || 'Untitled');
+              setCanvasLanguage(startData?.language || '');
+              currentCanvasContent = '';
+              canvasDataRef.current = {
+                type: (startData?.type as CanvasType) || 'code',
+                content: '',
+                title: startData?.title || 'Untitled',
+                language: startData?.language || '',
+                wasGenerated: true,
+              };
+              // Auto-switch to canvas tab
+              setSelectedTab('canvas');
+              break;
+
+            case 'canvas:chunk':
+              // For canvas:chunk, data is plain text content
+              currentCanvasContent += dataStr;
+              setCanvasContent(currentCanvasContent);
+              canvasDataRef.current.content = currentCanvasContent;
+              break;
+
+            case 'canvas:end':
+              console.log('[ChatPage Canvas] Canvas ended');
+              setIsCanvasStreaming(false);
+              break;
+
+            case 'stream:end':
+              console.log('[ChatPage Canvas] Stream ended:', eventData);
+              const endData = eventData as { chatId?: string; modelUsed?: string };
+              if (endData?.chatId) {
+                receivedChatId = endData.chatId;
+              }
+              if (endData?.modelUsed) {
+                modelUsed = endData.modelUsed;
+              }
+              break;
+
+            case 'error':
+              console.error('[ChatPage Canvas] Stream error event:', eventData);
+              break;
+          }
+        };
+
+        // Process SSE stream
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          sseBuffer += chunk;
+
+          // Process complete SSE messages (separated by double newlines)
+          const messages = sseBuffer.split('\n\n');
+          // Keep the last potentially incomplete message in the buffer
+          sseBuffer = messages.pop() || '';
+
+          for (const message of messages) {
+            if (!message.trim()) continue;
+
+            const lines = message.split('\n');
+            let eventType = '';
+            const dataLines: string[] = [];
+
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                eventType = line.substring(7).trim();
+              } else if (line.startsWith('data: ')) {
+                dataLines.push(line.substring(6));
+              }
+            }
+
+            // If we have data, process the event
+            if (dataLines.length > 0) {
+              const dataStr = dataLines.join('\n');
+              // Use the event type if specified, otherwise try to detect from data
+              const finalEventType = eventType || 'data';
+              processSSEEvent(finalEventType, dataStr);
+            }
+          }
+        }
+
+        // Process any remaining data in buffer
+        if (sseBuffer.trim()) {
+          const lines = sseBuffer.split('\n');
+          let eventType = '';
+          const dataLines: string[] = [];
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.substring(7).trim();
+            } else if (line.startsWith('data: ')) {
+              dataLines.push(line.substring(6));
+            }
+          }
+
+          if (dataLines.length > 0) {
+            processSSEEvent(eventType || 'data', dataLines.join('\n'));
+          }
+        }
+
+        // Update final message with model info
+        if (modelUsed) {
+          setMessages(prev => prev.map(m =>
+            m._id === assistantMessageId
+              ? { ...m, modelUsed }
+              : m
+          ));
+        }
+
+        // Update chatId if new chat was created
+        if (receivedChatId && !currentChatId) {
+          console.log('[ChatPage Canvas] Received new chatId:', receivedChatId);
+          setCurrentChatId(receivedChatId);
+        }
+
+        // Auto-save canvas if one was generated
+        if (canvasDataRef.current.wasGenerated && receivedChatId) {
+          try {
+            await fetchWithAuth(`/api/chats/${receivedChatId}/canvas/auto`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                type: canvasDataRef.current.type,
+                title: canvasDataRef.current.title,
+                content: canvasDataRef.current.content,
+                language: canvasDataRef.current.language,
+              }),
+            });
+            console.log('[ChatPage Canvas] Auto-saved canvas');
+          } catch (e) {
+            console.warn('[ChatPage Canvas] Failed to auto-save canvas:', e);
+          }
+        }
+
+        fetchChatList();
+
+      } catch (error) {
+        console.error('[ChatPage Canvas] Stream error:', error);
+        const errorMessage: Message = {
+          _id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: `Error: ${error instanceof Error ? error.message : 'Failed to stream response'}`,
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsCanvasStreaming(false);
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [user, isSending, messages, currentChatId, searchMode, activePersona, fetchChatList]
+  );
+  // --- END ADDITION ---
+
+  const handleSendMessage = useCallback(
+    async (input: string) => {
+      if (!input.trim() || isSending || !user) return;
+
+      // Use canvas streaming if canvas mode is enabled
+      if (useCanvasMode) {
+        return handleSendMessageWithCanvas(input);
+      }
+
+      setIsSending(true);
+
+      // Log user settings before sending
+      console.log('[ChatPage] Sending message with user settings:', {
+        isPersonaEnabled: settings?.isPersonaEnabled,
+        hasCustomPrompt: !!settings?.customPrompt,
+      });
+
+      // ----- Progressive status placeholder -----
+      const placeholderId = `progress-${Date.now()}`;
+      let progressIndex = 0;
+      const placeholder: Message = {
+        _id: placeholderId,
+        role: 'assistant',
+        content: PROGRESS_MESSAGES[progressIndex],
+      } as Message;
+      setAssistantProgressMsg(placeholder);
+
+      // cycle messages every interval
+      progressTimerRef.current = setInterval(() => {
+        progressIndex = (progressIndex + 1) % PROGRESS_MESSAGES.length;
+        setAssistantProgressMsg(prev =>
+          prev ? { ...prev, content: PROGRESS_MESSAGES[progressIndex] } : prev
+        );
+      }, PROGRESS_INTERVAL_MS);
+
+      const tempUserMessageId = `user-${Date.now()}`; // Temporary ID for optimistic update
+      const userMessage: Message = {
+        _id: tempUserMessageId,
+        role: 'user',
+        content: input.trim(),
+      };
+      setMessages(prevMessages => [...prevMessages, userMessage]);
+      setInputValue('');
+
+      console.log(
+        '[ChatPage Send] Sending message. User:',
+        user?.username,
+        'ChatID:',
+        currentChatId
+      );
+
+      // --- SIMPLIFIED: Use unified search mode directly (no mapping needed) ---
+      console.log(`[Chat] Current search mode state: ${searchMode}`);
+      console.log(`[Chat] Sending query with searchMode: ${searchMode}`);
+
+      const requestBody: Record<string, any> = {
+        query: input.trim(),
+        history: messages.map(m => ({ role: m.role, content: m.content })),
+        searchMode: searchMode, // Send as searchMode, not knowledgeBaseTarget
+        // The backend will map this to knowledgeBaseTarget internally
+        activePersonaId: activePersona?._id || null,
+        chatId: currentChatId || null, // Include chatId for chat persistence
+      };
+
+
+      console.log(
+        '[ChatPage] Final requestBody BEFORE sending to API:',
+        JSON.stringify(requestBody, null, 2)
+      );
+      // --- END MODIFICATION ---
+
+      // --- START: Log request payload before fetch ---
+      console.log(
+        '[ChatPage Send] Sending request to /api/chats. Body:',
+        JSON.stringify(requestBody, null, 2)
+      );
+      // --- END: Log request payload before fetch ---
+
+      try {
+        const response = await fetchWithAuth('/api/chats', {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        });
+
+        let assistantMessage: Message; // Define here to ensure assignment
+
+        if (response.ok) {
+          const data = await response.json();
+          // --- START DEBUG LOGS ---
+          console.log('<<< RAW POST /api/chats Response Data: >>>', JSON.stringify(data, null, 2)); // Log formatted JSON
+          // --- END DEBUG LOGS ---
+
+          // Backend returns { success: boolean, answer: string, sources: Array, chatId: string }
+
+          // Debug logging for sources
+          console.log('[DEBUG Sources] Sources from API:', JSON.stringify(data.sources, null, 2));
+
+          // Construct assistant message from response data
+          assistantMessage = {
+            _id: `assistant-${Date.now()}`, // Generate temporary ID for UI
+            role: 'assistant',
+            content: data.answer || 'Error: Could not parse response content.',
+            sources: data.sources || [],
+            modelUsed: data.modelUsed, // Include which model generated the response
+          };
+
+          // Update chatId if returned by backend (for persistence)
+          if (data.chatId && !currentChatId) {
+            console.log('[ChatPage] Received new chatId from backend:', data.chatId);
+            setCurrentChatId(data.chatId);
+          }
+
+          // Refresh chat list to show new/updated chat in sidebar
+          fetchChatList();
+        } else {
+          // Handle non-OK responses (including 401)
+          let errorContent = `Error: ${response.status} ${response.statusText || 'Failed to fetch response'}.`;
+          try {
+            const errorData = await response.text(); // Get error body
+            errorContent += ` ${errorData}`;
+          } catch (e) {
+            /* Ignore if error body cannot be read */
+          }
+
+          console.error('[ChatPage Send] API Error:', errorContent);
+
+          if (response.status === 401) {
+            console.warn('[ChatPage Send] Received 401 Unauthorized. Logging out.');
+            await logout(); // Force logout on 401
+            errorContent = 'Error: Your session may have expired. Please log in again.';
+          }
+
+          assistantMessage = {
+            _id: `error-${Date.now()}`, // Unique ID for error message
+            role: 'assistant',
+            content: errorContent,
+          };
+        }
+        // Clear progress indicator on success
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        setAssistantProgressMsg(null);
+
+        // Update messages state with the assistant's response (or error message)
+        setMessages(prevMessages => [...prevMessages, assistantMessage]);
+      } catch (error) {
+        // Handle network/fetch errors
+        console.error('[ChatPage Send] Fetch Error:', error);
+        // Clear progress on fetch error
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        setAssistantProgressMsg(null);
+        const fetchErrorAssistantMessage: Message = {
+          _id: `fetch-error-${Date.now()}`,
+          role: 'assistant',
+          content: `Network Error: ${error instanceof Error ? error.message : 'Failed to fetch response'}`,
+        };
+        // Update messages state with the fetch error message
+        setMessages(prevMessages => [...prevMessages, fetchErrorAssistantMessage]);
+      } finally {
+        // Ensure progress timer cleared
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        setAssistantProgressMsg(null);
+        setIsSending(false); // Ensure loading state is always reset
+      }
+
+      // Ensure ALL dependencies used within the callback are listed here
+    },
+    [
+      user,
+      isSending,
+      logout,
+      messages,
+      currentChatId,
+      setCurrentChatId,
+      setMessages,
+      setIsSending,
+      setInputValue,
+      searchMode,
+      settings,
+      activePersona,
+      newChatNotes,
+      handleSaveNotes,
+      fetchChatList,
+      useCanvasMode,
+      handleSendMessageWithCanvas,
+    ]
+  ); // Added missing dependencies
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isSending) {
+      e.preventDefault();
+      handleSendMessage(inputValue); // Pass current inputValue
+    }
+  };
+
+  // --- START ADDITION: Theme Toggle Logic ---
+  const isDarkMode = theme === 'dark';
+
+  const handleThemeChange = (checked: boolean) => {
+    setTheme(checked ? 'dark' : 'light');
+  };
+  // --- END ADDITION: Theme Toggle Logic ---
+
+  useEffect(() => {
+    console.log(
+      '[Toggle State] isUserDocsSelected changed to:',
+      isUserDocsSelected ? 'user' : 'system'
+    );
+  }, [isUserDocsSelected]);
+
+  // --- ADDED: Auto-switch tab to match selected knowledge base ---
+  useEffect(() => {
+    if (searchMode === 'user-docs') {
+      setSelectedTab('my-docs');
+    } else if (searchMode === 'system-kb') {
+      setSelectedTab('system-kb');
+    }
+    // Note: We don't automatically switch to 'notes' to allow manual tab selection
+  }, [searchMode]);
+  // --- END ADDITION ---
+
+  // --- ADDED: Cmd+K keyboard shortcut for chat search ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  // --- END ADDITION ---
+
+  // --- ADDED: Handler to update chat name via API ---
+  const handleUpdateChatName = async (chatId: string, newName: string) => {
+    if (!chatId || !newName.trim()) {
+      console.error('[handleUpdateChatName] Invalid input:', { chatId, newName });
+      toast({ title: 'Error', description: 'Invalid chat ID or name.', variant: 'destructive' });
+      return; // Prevent API call with invalid data
+    }
+
+    console.log(`[handleUpdateChatName] Updating chat ${chatId} name to "${newName}"...`);
+
+    // Optimistic UI Update (Should work now with correct type)
+    const originalChats = [...chats];
+    setChats(prevChats =>
+      prevChats.map(chat => (chat._id === chatId ? { ...chat, chatName: newName } : chat))
+    );
+
+    try {
+      const response = await fetchWithAuth(`/api/chats/${chatId}/name`, {
+        method: 'PUT',
+        body: JSON.stringify({ chatName: newName }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log('[handleUpdateChatName] Name updated successfully.');
+        toast({ title: 'Success', description: 'Chat name updated.' });
+        // State already updated optimistically
+        // If backend returns updated chat object, you could update state here instead
+        // e.g., setChats(prev => prev.map(c => c._id === chatId ? { ...c, ...result.chat } : c));
+      } else {
+        console.error(`[handleUpdateChatName] Failed to update name: ${response.status}`, result);
+        // Rollback optimistic update on failure
+        setChats(originalChats);
+        throw new Error(result.message || `Failed to update name (Status: ${response.status})`);
+      }
+    } catch (error: any) {
+      console.error('[handleUpdateChatName] Error updating name:', error);
+      // Rollback optimistic update on error
+      setChats(originalChats);
+      toast({ title: 'Error Updating Name', description: error.message, variant: 'destructive' });
+      // Re-throw or handle as needed
+    }
+    // No finally block needed for loading state as it's handled in Sidebar
+  };
+  // --- END ADDITION ---
+
+  // --- Render Logic ---
+
+  // Combine normal messages with progress placeholder for rendering
+  const displayMessages = assistantProgressMsg ? [...messages, assistantProgressMsg] : messages;
+
+  // Wrap the main content with ProtectedRoute
+  return (
+    <ProtectedRoute>
+      <div className="flex h-screen bg-background text-foreground p-4 relative">
+        {/* 1. Left Sidebar - Hidden on mobile */}
+        <div className="hidden md:block">
+          <Sidebar
+            user={user}
+            activeView={activeView}
+            setActiveView={setActiveView}
+            chats={chats}
+            selectedChatId={selectedChatIdFromSidebar}
+            isLoadingChats={isLoadingChats}
+            handleNewChat={handleNewChat}
+            handleSelectChat={handleSelectChat}
+            handleConfirmDelete={handleConfirmDelete}
+            onDeleteAllChats={() => setIsAlertAllOpen(true)}
+            isAlertAllOpen={isAlertAllOpen}
+            setIsAlertAllOpen={setIsAlertAllOpen}
+            handleLogout={logout}
+            onUpdateChatName={handleUpdateChatName}
+          />
+        </div>
+
+        {/* 2. Center Main Content Area */}
+        <div
+          className={`flex flex-1 flex-col h-full transition-all duration-300 ease-in-out bg-background`}
+        >
+          {/* Header */}
+          <header className="p-4 bg-background flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {/* Mobile Navigation - Hamburger Menu */}
+              <MobileNav
+                user={user}
+                activeView={activeView}
+                setActiveView={setActiveView}
+                chats={chats}
+                selectedChatId={selectedChatIdFromSidebar}
+                isLoadingChats={isLoadingChats}
+                handleNewChat={handleNewChat}
+                handleSelectChat={handleSelectChat}
+                handleConfirmDelete={handleConfirmDelete}
+                onDeleteAllChats={() => setIsAlertAllOpen(true)}
+                isAlertAllOpen={isAlertAllOpen}
+                setIsAlertAllOpen={setIsAlertAllOpen}
+                handleLogout={logout}
+                onUpdateChatName={handleUpdateChatName}
+              />
+              <h2 className="text-lg font-semibold">
+                <span className="text-yellow-500">GK</span>CHATTY
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Unified Search Toggle */}
+              <UnifiedSearchToggle />
+              {/* Help Mode Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleHelpMode}
+                data-help-id="header-help-mode"
+                title={isHelpModeEnabled ? 'Disable Help Mode' : 'Enable Help Mode'}
+                className={`transition-all duration-200 ${
+                  isHelpModeEnabled
+                    ? 'bg-yellow-500 text-yellow-900 hover:bg-yellow-600 shadow-md'
+                    : 'hover:bg-muted'
+                }`}
+              >
+                <HelpCircle className="h-5 w-5" />
+              </Button>
+              {/* Theme Toggle Switch */}
+              <div className="flex items-center space-x-2" data-help-id="header-theme">
+                <Sun className="h-5 w-5 text-yellow-500" />
+                <Switch
+                  id="theme-switch"
+                  checked={theme === 'dark'}
+                  onCheckedChange={handleThemeChange}
+                  className="dark:data-[state=unchecked]:bg-slate-700 dark:data-[state=checked]:bg-yellow-500 dark:[&_[data-radix-switch-thumb]]:bg-slate-100"
+                />
+                <Moon className="h-5 w-5 text-gray-500" />
+              </div>
+              {/* Right Sidebar Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+                title={isRightSidebarOpen ? 'Hide Panel' : 'Show Panel'}
+              >
+                {isRightSidebarOpen ? (
+                  <PanelRightClose className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </header>
+
+          {/* Message List */}
+          <main className="flex-1 overflow-y-auto p-4 space-y-4 rounded-lg mx-4 mb-4 bg-muted dark:bg-zinc-800">
+            {isLoadingHistory ? (
+              <div className="flex justify-center items-center h-full text-muted-foreground">
+                Loading history...
+              </div>
+            ) : displayMessages.length === 0 ? (
+              <div className="flex justify-center items-center h-full text-muted-foreground">
+                Start a new conversation.
+              </div>
+            ) : (
+              displayMessages.map((msg, msgIndex) => (
+                <div
+                  key={msg._id}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`relative max-w-[75%] rounded-lg px-4 py-2 shadow-sm border ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground'}`}
+                  >
+                    {/* Three-dot menu for assistant messages */}
+                    {msg.role === 'assistant' && !msg._id.startsWith('progress-') && (
+                      <div className="absolute top-2 right-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="p-1 rounded hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                              aria-label="Message options"
+                            >
+                              <MoreVertical className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleCopyToClipboard(msg.content, msg._id)}
+                              className="cursor-pointer"
+                            >
+                              {copiedMessageId === msg._id ? (
+                                <>
+                                  <Check className="w-4 h-4 mr-2 text-green-600" />
+                                  <span className="text-green-600">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-4 h-4 mr-2" />
+                                  Copy to clipboard
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadMessage(msg.content, 'pdf')}
+                              className="cursor-pointer"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download as PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadMessage(msg.content, 'docx')}
+                              className="cursor-pointer"
+                            >
+                              <FileType className="w-4 h-4 mr-2" />
+                              Download as Word
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadMessage(msg.content, 'txt')}
+                              className="cursor-pointer"
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              Download as Text
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleSaveToDocuments(msg.content, 'pdf', msg._id)}
+                              className="cursor-pointer"
+                              disabled={savingMessageId === msg._id}
+                            >
+                              {savingMessageId === msg._id ? (
+                                <>
+                                  <Check className="w-4 h-4 mr-2 text-green-600" />
+                                  <span className="text-green-600">Saved!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="w-4 h-4 mr-2" />
+                                  Save to My Documents
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                    <p className={`text-sm whitespace-pre-wrap ${msg._id.startsWith('progress-') ? 'thinking-glow' : ''} ${msg.role === 'assistant' && !msg._id.startsWith('progress-') ? 'pr-8' : ''}`}>{msg.content}</p>
+                    {/* Sources */}
+                    {msg.role === 'assistant' &&
+                      msg.sources &&
+                      msg.sources.length > 0 &&
+                      (() => {
+                        // Log sources outside of JSX return
+                        console.log(
+                          '[DEBUG ChatUI Sources] msg.sources content:',
+                          JSON.stringify(msg.sources, null, 2)
+                        );
+                        return (
+                          <div className="mt-2 border-t pt-2 border-muted">
+                            <h4 className="text-xs font-semibold mb-1">Sources:</h4>
+                            <ul className="list-none pl-0 space-y-1">
+                              {msg.sources.map((source, index) => (
+                                <li key={source.documentId || `source-${index}`}>
+                                  {source.documentId && source.fileName && source.type ? (
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="h-auto p-0 text-xs text-muted-foreground hover:text-primary font-normal text-left whitespace-normal"
+                                      onClick={() =>
+                                        handleDocumentSelect(
+                                          source.documentId!,
+                                          source.fileName!,
+                                          source.type!
+                                        )
+                                      }
+                                      title={`View ${source.fileName}`}
+                                    >
+                                      {source.fileName}
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                      {source.fileName || source.documentId || 'Unknown Source'}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })()}
+                    {/* Model badge - bottom right of message, hidden by default */}
+                    {msg.role === 'assistant' && msg.modelUsed && (
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => {
+                            setExpandedModelIds(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(msgIndex)) {
+                                newSet.delete(msgIndex);
+                              } else {
+                                newSet.add(msgIndex);
+                              }
+                              return newSet;
+                            });
+                          }}
+                          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          title={expandedModelIds.has(msgIndex) ? 'Hide model' : 'Show model'}
+                        >
+                          <ChevronRight
+                            className={`h-3 w-3 transition-transform duration-200 ${
+                              expandedModelIds.has(msgIndex) ? 'rotate-90' : ''
+                            }`}
+                          />
+                          {expandedModelIds.has(msgIndex) && (
+                            <span className="ml-1">{msg.modelUsed}</span>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} /> {/* Scroll target */}
+          </main>
+
+          {/* Input Area */}
+          <footer className="p-4 flex-shrink-0 w-full">
+            <div className="flex gap-2 items-end p-3 rounded-lg bg-gradient-to-r from-blue-100/50 to-purple-100/50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800">
+              <Textarea
+                placeholder="Type your message here... (Shift+Enter for newline)"
+                className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 bg-transparent p-2"
+                rows={1}
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isSending}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!inputValue.trim() || isSending}
+                onClick={() => handleSendMessage(inputValue)}
+              >
+                {isSending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                <span className="sr-only">Send message</span>
+              </Button>
+            </div>
+          </footer>
+        </div>
+
+        {/* 3. Right Sidebar */}
+        {isRightSidebarOpen && (
+          <div className="w-1/4 border-l border-border flex flex-col h-full min-w-[300px]">
+            {selectedDocument ? (
+              // If a document is selected, show the document viewer
+              <DocumentViewer
+                documentId={selectedDocument.id}
+                filename={selectedDocument.filename}
+                type={selectedDocument.type}
+                onClose={handleCloseViewer}
+              />
+            ) : (
+              // Show tabs when no document is selected
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="flex flex-col h-full bg-card right-panel-tabs">
+                <TabsList className="grid w-full grid-cols-4 p-1 m-2">
+                  <TabsTrigger value="notes" className="text-xs" data-help-id="panel-notes-tab">Notes</TabsTrigger>
+                  <TabsTrigger value="canvas" className="text-xs relative" data-help-id="panel-canvas-tab">
+                    Canvas
+                    {canvasType && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="system-kb" className="text-xs" data-help-id="panel-system-kb-tab">System KB</TabsTrigger>
+                  <TabsTrigger value="my-docs" className="text-xs" data-help-id="panel-my-docs-tab">My Docs</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="notes" className="flex-1 m-0 overflow-hidden">
+                  <ChatNotesPanel
+                    chatId={currentChatId}
+                    initialNotes={currentChatId ? selectedChatData?.notes : newChatNotes}
+                    onSaveNotes={handleSaveNotes}
+                    isLoading={isSavingNotes}
+                  />
+                </TabsContent>
+
+                <TabsContent
+                  value="canvas"
+                  className={cn(
+                    "flex-1 m-0 overflow-auto bg-card canvas-no-flash",
+                    selectedTab !== 'canvas' && "hidden"
+                  )}
+                  forceMount
+                >
+                  <CanvasPanel
+                    type={canvasType}
+                    content={canvasContent}
+                    language={canvasLanguage}
+                    title={canvasTitle}
+                    isStreaming={isCanvasStreaming}
+                    onClose={() => {
+                      setCanvasType(null);
+                      setCanvasContent('');
+                      setCanvasTitle('');
+                      setCanvasLanguage('');
+                    }}
+                    chatId={currentChatId}
+                  />
+                </TabsContent>
+
+                <TabsContent value="system-kb" className="flex-1 m-0 overflow-hidden">
+                  <FileTreeView onDocumentSelect={handleSystemKbSelect} isActive={selectedTab === 'system-kb'} />
+                </TabsContent>
+
+                <TabsContent value="my-docs" className="flex-1 m-0 overflow-hidden">
+                  <FileTreeManager mode="user" isActive={selectedTab === 'my-docs'} />
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
+        )}
+
+        {/* --- START ADDITION: Delete All Chats Confirmation Dialog --- */}
+        <AlertDialog open={isAlertAllOpen} onOpenChange={setIsAlertAllOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete All Chat History?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete all of your chat
+                sessions.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAllChats}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete All Chats
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        {/* --- END ADDITION --- */}
+
+        {/* --- START ADDITION: Chat Search Modal (Cmd+K) --- */}
+        <ChatSearchModal
+          isOpen={isSearchModalOpen}
+          onOpenChange={setIsSearchModalOpen}
+          onSelectChat={handleSelectChat}
+        />
+        {/* --- END ADDITION --- */}
+      </div>
+    </ProtectedRoute>
+  );
+}

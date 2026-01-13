@@ -1,0 +1,801 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force scrollbars to always be visible */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.7) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.7);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(155, 155, 155, 1);
+}
+
+/* Global UI scaling: balanced for readability + content density */
+@layer base {
+  html {
+    font-size: 87.5%; /* 14px base - readable on desktop */
+  }
+  @media (max-width: 768px) {
+    html {
+      font-size: 81.25%; /* 13px base - more readable than 70%, still compact */
+    }
+  }
+}
+
+/* Define CSS variables OUTSIDE of layers */
+:root {
+  /* Font Families */
+  --font-livvic: 'Livvic', sans-serif;
+  --font-mplus2: 'M PLUS 2', sans-serif;
+
+  /* Light Theme - Ensure these are appropriate light mode values */
+  --background: 210 40% 96%; /* slate-100 - soft gray instead of pure white */
+  --foreground: 215 28% 17%; /* slate-800 */
+  --card: 0 0% 100%;         /* white */
+  --card-foreground: 215 28% 17%; /* slate-800 */
+  --popover: 0 0% 100%;        /* white */
+  --popover-foreground: 215 28% 17%; /* slate-800 */
+  --primary: 215 28% 17%;       /* slate-800 as primary for light */
+  --primary-foreground: 210 40% 98%; /* slate-50 as text on primary */
+  --secondary: 215 20% 91%;      /* slate-200 - Note: This was the target for muted */
+  --secondary-foreground: 215 28% 17%; /* slate-800 */
+  --muted: 214.3 31.8% 91.4%; /* slate-200 - UPDATED */
+  --muted-foreground: 215 16% 47%; /* slate-500 - UPDATED */
+  --accent: 215 20% 97%;         /* slate-100 */ 
+  --accent-foreground: 215 28% 17%;  /* slate-800 */
+  --destructive: 0 84.2% 60.2%;   /* Default Red */
+  --destructive-foreground: 210 40% 98%; /* Default Red Foreground */
+  --border: 215 20% 91%;         /* slate-200 */
+  --input: 215 20% 91%;          /* slate-200 */
+  --ring: 215 28% 17%;           /* slate-800 */
+  --radius: 0.5rem;
+
+  /* Mobile Tab Bar */
+  --mobile-tab-bar-height: 64px;
+}
+
+/* Add new active dark theme block */
+.dark {
+  /* True neutral gray values - no blue tint */
+  --background: 0 0% 13%; /* #212121 - Slightly lighter dark gray for better visibility */
+  --foreground: 0 0% 98%; /* #fafafa - Pure white with slight gray */
+
+  --muted: 0 0% 45%; /* #737373 - Neutral gray - no blue tint */
+  --muted-foreground: 0 0% 64%; /* #a3a3a3 - Neutral gray */
+
+  --popover: 0 0% 7%; /* #111111 - Match background */
+  --popover-foreground: 0 0% 98%; /* Match foreground */
+
+  --card: 0 0% 12%; /* #1e1e1e - True neutral dark gray */
+  --card-foreground: 0 0% 98%; /* Match foreground */
+
+  --border: 0 0% 25%; /* #404040 - Neutral gray */
+  --input: 0 0% 25%; /* #404040 - Match border */
+
+  --primary: 0 0% 98%; /* #fafafa - Pure white with slight gray */
+  --primary-foreground: 0 0% 7%; /* #111111 - Match background */
+
+  --secondary: 0 0% 25%; /* #404040 - Neutral gray */
+  --secondary-foreground: 0 0% 98%; /* Match foreground */
+
+  --accent: 0 0% 25%; /* #404040 - Neutral gray */
+  --accent-foreground: 0 0% 98%; /* Match foreground */
+
+  /* Using true neutral dark red */
+  --destructive: 0 70% 30%; /* rgb(127, 29, 29) - Neutral dark red */
+  --destructive-foreground: 0 0% 98%; /* Match foreground */
+
+  --ring: 0 0% 25%; /* #404040 - Neutral gray */
+}
+
+/* ========================================
+   FUN MODE THEME - Dev User Exclusive
+   Vibrant randomizable cyberpunk/neon aesthetic
+   Default colors - JavaScript injects dynamic overrides
+   ======================================== */
+.fun {
+  /* Default cyberpunk colors (overridden by dynamic style tag when randomized) */
+  --background: 270 50% 8%;
+  --foreground: 180 100% 90%;
+
+  --muted: 270 30% 25%;
+  --muted-foreground: 180 60% 70%;
+
+  --popover: 270 50% 10%;
+  --popover-foreground: 180 100% 90%;
+
+  --card: 270 40% 12%;
+  --card-foreground: 180 100% 90%;
+
+  --border: 300 100% 50%;
+  --input: 270 40% 20%;
+
+  --primary: 320 100% 60%;
+  --primary-foreground: 270 50% 8%;
+
+  --secondary: 180 100% 40%;
+  --secondary-foreground: 270 50% 8%;
+
+  --accent: 45 100% 50%;
+  --accent-foreground: 270 50% 8%;
+
+  --destructive: 0 100% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --ring: 320 100% 60%;
+}
+
+/* Fun mode special effects */
+.fun body {
+  background: linear-gradient(135deg,
+    hsl(270 50% 8%) 0%,
+    hsl(280 50% 12%) 50%,
+    hsl(260 50% 10%) 100%
+  ) !important;
+}
+
+/* Animated gradient border for cards in fun mode */
+.fun .border {
+  border-color: hsl(300 100% 50%);
+}
+
+/* Glow effects for buttons in fun mode */
+.fun button:hover,
+.fun [role="button"]:hover {
+  box-shadow: 0 0 20px hsl(320 100% 60% / 0.4);
+}
+
+/* Neon text glow for headings */
+.fun h1, .fun h2, .fun h3 {
+  text-shadow: 0 0 10px hsl(180 100% 50% / 0.5);
+}
+
+/* Animated background gradient */
+@keyframes fun-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.fun .fun-animated-bg {
+  background: linear-gradient(-45deg,
+    hsl(270 50% 15%),
+    hsl(300 50% 20%),
+    hsl(180 50% 15%),
+    hsl(320 50% 20%)
+  );
+  background-size: 400% 400%;
+  animation: fun-gradient 15s ease infinite;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Mobile viewport fix - prevent excessive stretching */
+  @media (max-width: 768px) {
+    body {
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: 100vh;
+      /* Use dvh (dynamic viewport height) for better mobile support */
+      height: 100dvh;
+    }
+
+    #__next {
+      height: 100%;
+      overflow: visible;
+    }
+  }
+
+  #__next {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .animate-fadeInUp {
+    animation: fadeInUp 0.3s ease-out;
+  }
+
+  /* Keep Shadcn CSS variable definitions */
+  /* MOVED ABOVE */
+
+  /* Remove redundant @theme block if not needed */
+  /* @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+  } */
+
+  /* Keep the base application of border, bg, text */
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Ensure font-family and font-size are set */
+    font-family: theme('fontFamily.sans', 'sans-serif');
+    font-size: theme('fontSize.base', '13px');
+  }
+}
+
+/* !! TEMPORARY HARDCODED TEST - REMOVING !! */
+/*
+html.dark body {
+    background-color: hsl(215 28% 17%) !important;
+}
+*/
+
+/* ========================================
+   MOBILE OPTIMIZATION STYLES
+   ======================================== */
+
+/* Mobile optimizations - enterprise best practices */
+@media (max-width: 768px) {
+  /* Compact spacing for better mobile fit */
+  .p-6 { padding: 1rem !important; }
+  .p-8 { padding: 1.25rem !important; }
+  .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  /* Reduce excessive gaps */
+  .gap-6 { gap: 1rem !important; }
+  .gap-8 { gap: 1.25rem !important; }
+}
+
+/* Safe area padding for iOS notch/home indicator */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Small Viewport Height utilities - stable height for mobile messenger layouts */
+  /* svh doesn't change when address bar shows/hides (unlike dvh) */
+  .h-svh {
+    height: 100svh;
+  }
+  .min-h-svh {
+    min-height: 100svh;
+  }
+  .max-h-svh {
+    max-height: 100svh;
+  }
+  /* Keyboard-aware safe area for iOS */
+  .pb-keyboard {
+    padding-bottom: calc(env(safe-area-inset-bottom) + env(keyboard-inset-height, 0px));
+  }
+}
+
+/* Touch-friendly mobile styles */
+@media (max-width: 768px) {
+  /* Ensure all interactive elements meet minimum touch target size (44px) */
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  [role="button"],
+  [role="link"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Touch-friendly form inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  textarea,
+  select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 0.75rem 1rem;
+  }
+
+  /* Larger tap targets for icon buttons */
+  .icon-button {
+    padding: 12px;
+  }
+
+  /* Prevent double-tap zoom on buttons */
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Smooth scrolling for mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent text selection on UI elements */
+  button,
+  [role="button"],
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  button,
+  a[role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Remove iOS input shadows and styles */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Better button appearance on iOS */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Glowing text animation for thinking/loading states */
+@keyframes glow-wave {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.thinking-glow {
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    currentColor 40%,
+    #FFDD00 50%,
+    currentColor 60%,
+    currentColor 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: glow-wave 2s linear infinite;
+}
+
+/* ========================================
+   CANVAS LOADING ANIMATIONS
+   Enterprise-quality skeleton shimmer
+   ======================================== */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Smooth canvas loading transition */
+.canvas-container {
+  transition: opacity 0.2s ease-out;
+}
+
+/* Prevent flash during canvas rendering */
+.canvas-no-flash {
+  background-color: hsl(var(--card)) !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Force consistent background on all canvas-related elements */
+[data-canvas-panel],
+[data-canvas-panel] * {
+  background-color: inherit;
+}
+
+[data-canvas-content] {
+  background-color: hsl(var(--card)) !important;
+  min-height: 100%;
+}
+
+/* Prevent flashing during Radix UI Tabs transitions */
+[data-radix-tabs-content],
+[role="tabpanel"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+
+/* Ensure tabs content in right panel uses theme colors */
+.right-panel-tabs [data-state] {
+  background-color: hsl(var(--card)) !important;
+}
+
+.right-panel-tabs [data-state="active"],
+.right-panel-tabs [data-state="inactive"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* GPU acceleration for all canvas-related containers */
+[data-canvas-panel],
+[data-canvas-content],
+.right-panel-tabs,
+.canvas-container {
+  will-change: auto;
+  contain: layout style paint;
+}
+
+/* Canvas skeleton and content layers need GPU compositing */
+[data-canvas-content] > div {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Keep consistent backgrounds throughout the panel hierarchy */
+.right-panel-tabs,
+.right-panel-tabs > div,
+.right-panel-tabs [data-radix-tabs-content] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Subtle pulse for streaming content */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Typing cursor animation */
+@keyframes cursor-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* Fade in animation for content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Smooth content reveal */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.animate-content-reveal {
+  animation: contentReveal 0.5s ease-out forwards;
+}
+
+/* ========================================
+   REACT-PDF TEXT LAYER FIX
+   Ensures text selection aligns with visible PDF text
+   ======================================== */
+
+/* Text layer must be positioned exactly over the canvas */
+.react-pdf__Page__textContent {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  line-height: 1 !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Make text layer spans invisible but selectable */
+.react-pdf__Page__textContent span {
+  color: transparent !important;
+  position: absolute !important;
+  white-space: pre !important;
+  transform-origin: 0% 0% !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Highlight selected text with visible blue background */
+.react-pdf__Page__textContent span::selection {
+  background: rgba(0, 100, 200, 0.3) !important;
+  color: transparent !important;
+}
+
+.react-pdf__Page__textContent span::-moz-selection {
+  background: rgba(0, 100, 200, 0.3) !important;
+  color: transparent !important;
+}
+
+/* Ensure the page container has relative positioning for text layer */
+.react-pdf__Page {
+  position: relative !important;
+}
+
+/* Canvas should not interfere with text layer */
+.react-pdf__Page__canvas {
+  display: block !important;
+}
+
+/* EMTChat Background Images */
+.emtchat-bg {
+  position: relative;
+}
+
+.emtchat-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Light mode - daytime EMT scene */
+.emtchat-bg::before {
+  background-image: url('/emtchat-bg-light.png');
+  opacity: 0.55;
+}
+
+/* Dark mode - nighttime EMT scene */
+.dark .emtchat-bg::before {
+  background-image: url('/emtchat-bg-dark.png');
+  opacity: 0.65;
+}
+
+/* ========================================
+   LIQUID GLASS EFFECT - Frosted panels
+   ======================================== */
+
+/* RGB values for glass effect */
+:root {
+  --background-rgb: 226, 232, 240; /* slate-200 for light */
+  --glass-border: rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --background-rgb: 33, 33, 33; /* dark gray */
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Sidebar glass effect */
+.emtchat-bg nav {
+  background: rgba(var(--background-rgb), 0.45) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+/* Main content panels glass effect */
+.emtchat-bg .bg-background {
+  background: rgba(var(--background-rgb), 0.4) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Card elements glass effect */
+.emtchat-bg .bg-card {
+  background: rgba(var(--background-rgb), 0.35) !important;
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+/* Chat input area - softer glass */
+.emtchat-bg textarea,
+.emtchat-bg input {
+  background: rgba(var(--background-rgb), 0.55) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 12px !important;
+}
+
+/* Chat thread/message area glass effect */
+.emtchat-bg [class*="flex-1"][class*="overflow"] {
+  background: rgba(var(--background-rgb), 0.25) !important;
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+/* Chat messages container */
+.emtchat-bg .rounded-lg {
+  background: rgba(var(--background-rgb), 0.3) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+}
+
+/* Soften all borders in emtchat-bg */
+.emtchat-bg [class*="border"] {
+  border-color: var(--glass-border) !important;
+}
+
+/* Buttons glass effect */
+.emtchat-bg button {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Chat input container - curved corners */
+.emtchat-bg [class*="border"][class*="rounded"] {
+  border-radius: 16px !important;
+}
+
+/* Main chat input wrapper */
+.emtchat-bg form,
+.emtchat-bg [class*="flex"][class*="flex-col"] > div:last-child {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+/* The outer chat input box */
+.emtchat-bg div[class*="border-primary"],
+.emtchat-bg div[class*="border-2"] {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+/* Footer - chat input area container */
+.emtchat-bg footer {
+  background: rgba(var(--background-rgb), 0.4) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 20px !important;
+  border: 1px solid var(--glass-border);
+  margin: 12px auto 16px auto !important;
+  max-width: calc(100% - 32px);
+  padding-top: 12px !important;
+  padding-bottom: 8px !important;
+}
+
+/* Inner chat input gradient box - center it */
+.emtchat-bg footer > div {
+  margin: 0 auto;
+}
+
+/* Reduce tip text space */
+.emtchat-bg footer p {
+  margin-top: 4px !important;
+  margin-bottom: 0 !important;
+}
+
+/* Header - glass effect matching footer */
+.emtchat-bg header {
+  background: rgba(var(--background-rgb), 0.4) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 20px !important;
+  border: 1px solid var(--glass-border);
+  margin: 12px auto 8px auto !important;
+  max-width: calc(100% - 32px);
+}
+
+/* Right panel tabs - compact fit */
+.emtchat-bg [role="tablist"] {
+  padding: 4px 16px !important;
+  gap: 2px !important;
+  overflow: visible !important;
+  margin-right: 8px !important;
+}
+
+.emtchat-bg [role="tablist"] button,
+.emtchat-bg [role="tablist"] [role="tab"] {
+  padding: 4px 6px !important;
+  font-size: 11px !important;
+  min-width: auto !important;
+  white-space: nowrap;
+}
+
+/* Right panel container - allow tabs to show */
+.emtchat-bg [class*="rounded-lg"][class*="bg-muted"] {
+  overflow: visible !important;
+  margin-right: 8px !important;
+}
+
+/* Right panel - add padding */
+.emtchat-bg [data-help-id],
+.emtchat-bg [class*="w-full"][class*="flex-col"] > div:first-child {
+  padding-right: 8px !important;
+}
+
+/* Right panel border container - don't cover tabs */
+.emtchat-bg [class*="border-l"][class*="flex-col"][class*="h-full"] {
+  margin-left: 8px !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
