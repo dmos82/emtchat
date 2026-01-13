@@ -68,12 +68,12 @@ function MarketingHeader() {
 
             {/* Auth buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <Link href="/auth/login">
+              <Link href="/auth">
                 <Button variant="ghost" size="sm">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/auth/register">
+              <Link href="/auth">
                 <Button size="sm" className="bg-red-600 hover:bg-red-700">
                   Get Started
                 </Button>
@@ -110,12 +110,12 @@ function MarketingHeader() {
               </Link>
             ))}
             <div className="pt-3 border-t border-gray-200 dark:border-gray-800 flex gap-3">
-              <Link href="/auth/login" className="flex-1">
+              <Link href="/auth" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/auth/register" className="flex-1">
+              <Link href="/auth" className="flex-1">
                 <Button size="sm" className="w-full bg-red-600 hover:bg-red-700">
                   Get Started
                 </Button>

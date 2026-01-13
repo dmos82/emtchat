@@ -154,7 +154,7 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register">
+            <Link href="/auth">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8">
                 Start Free Trial
               </Button>
@@ -229,7 +229,7 @@ export default function LandingPage() {
               Join hundreds of EMS departments already using EMTChat to improve response times and protocol adherence.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/register">
+              <Link href="/auth">
                 <Button size="lg" variant="secondary" className="px-8">
                   Get Started Free
                 </Button>

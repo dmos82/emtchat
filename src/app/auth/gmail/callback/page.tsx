@@ -72,7 +72,7 @@ function GmailCallbackContent() {
 
           // Redirect to main app after 3 seconds (settings is modal-based)
           setTimeout(() => {
-            router.push('/');
+            router.push('/chat');
           }, 3000);
         } else {
           setStatus('error');
@@ -148,7 +148,7 @@ function GmailCallbackContent() {
             <div className="space-y-2">
               <Button
                 variant="default"
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/chat')}
               >
                 Go to App
               </Button>

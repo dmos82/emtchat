@@ -33,11 +33,11 @@ export function LoginForm() {
       const loginSuccess = true;
 
       if (loginSuccess) {
-        console.log('[LoginForm] AuthContext login successful. Redirecting to /');
+        console.log('[LoginForm] AuthContext login successful. Redirecting to /chat');
         // Use full page reload instead of client-side navigation
         // This ensures all components reinitialize properly, especially on iOS
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/chat';
         }, 100);
       } else {
         console.log('[LoginForm] AuthContext login failed.');

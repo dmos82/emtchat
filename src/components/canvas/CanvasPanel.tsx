@@ -325,7 +325,7 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
           pageCanvas.height = srcHeight;
           const ctx = pageCanvas.getContext('2d');
           if (ctx) {
-            const img = new Image();
+            const img = document.createElement('img');
             img.src = imgData;
             await new Promise(resolve => { img.onload = resolve; });
             ctx.drawImage(img, 0, srcY, imgWidth, srcHeight, 0, 0, imgWidth, srcHeight);
@@ -640,7 +640,7 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
         pageCanvas.height = srcHeight;
         const ctx = pageCanvas.getContext('2d');
         if (ctx) {
-          const img = new Image();
+          const img = document.createElement('img');
           img.src = imgData;
           await new Promise(resolve => { img.onload = resolve; });
           ctx.drawImage(img, 0, srcY, imgWidth, srcHeight, 0, 0, imgWidth, srcHeight);
