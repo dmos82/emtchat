@@ -756,7 +756,8 @@ input[type="reset"] {
   max-width: calc(100% - 32px);
   padding-top: 12px !important;
   padding-bottom: 8px !important;
-  position: relative;
+  position: sticky !important;
+  bottom: 0 !important;
   z-index: 30;
 }
 
