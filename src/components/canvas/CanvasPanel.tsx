@@ -256,26 +256,98 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
       // Determine file extension and mime type based on canvas type
       let extension = 'txt';
       let mimeType = 'text/plain';
+      let blob: Blob;
 
       if (type === 'code') {
         extension = language || 'txt';
         mimeType = 'text/plain';
+        blob = new Blob([content], { type: mimeType });
       } else if (type === 'diagram') {
         extension = 'mmd';
         mimeType = 'text/plain';
+        blob = new Blob([content], { type: mimeType });
       } else if (type === 'html') {
-        extension = 'html';
-        mimeType = 'text/html';
+        // Convert HTML to PDF for My Docs (PDF is supported, HTML is not)
+        extension = 'pdf';
+        mimeType = 'application/pdf';
+
+        const { jsPDF } = await import('jspdf');
+        const html2canvas = (await import('html2canvas')).default;
+
+        // Create an off-screen container to render the HTML
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        container.style.width = '800px';
+        container.style.background = '#ffffff';
+        container.style.padding = '40px';
+        container.innerHTML = content;
+        document.body.appendChild(container);
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const canvas = await html2canvas(container, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          width: 800,
+        });
+
+        document.body.removeChild(container);
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = canvas.width / 2;
+        const imgHeight = canvas.height / 2;
+
+        const LETTER_WIDTH = 612;
+        const LETTER_HEIGHT = 792;
+        const margin = 36;
+        const contentWidth = LETTER_WIDTH - (margin * 2);
+        const scale = contentWidth / imgWidth;
+        const scaledHeight = imgHeight * scale;
+        const pageContentHeight = LETTER_HEIGHT - (margin * 2);
+        const numPages = Math.ceil(scaledHeight / pageContentHeight);
+
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: 'letter',
+        });
+
+        for (let page = 0; page < numPages; page++) {
+          if (page > 0) pdf.addPage();
+          const srcY = (page * pageContentHeight) / scale;
+          const srcHeight = Math.min(pageContentHeight / scale, imgHeight - srcY);
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = imgWidth;
+          pageCanvas.height = srcHeight;
+          const ctx = pageCanvas.getContext('2d');
+          if (ctx) {
+            const img = new Image();
+            img.src = imgData;
+            await new Promise(resolve => { img.onload = resolve; });
+            ctx.drawImage(img, 0, srcY, imgWidth, srcHeight, 0, 0, imgWidth, srcHeight);
+            const pageImgData = pageCanvas.toDataURL('image/png');
+            pdf.addImage(pageImgData, 'PNG', margin, margin, contentWidth, srcHeight * scale);
+          }
+        }
+
+        blob = pdf.output('blob');
       } else if (type === 'document') {
         extension = 'md';
         mimeType = 'text/markdown';
+        blob = new Blob([content], { type: mimeType });
       } else if (type === 'chart') {
         extension = 'json';
         mimeType = 'application/json';
+        blob = new Blob([content], { type: mimeType });
+      } else {
+        blob = new Blob([content], { type: mimeType });
       }
 
       const fileName = `${title || 'canvas'}.${extension}`;
-      const blob = new Blob([content], { type: mimeType });
       const fileSize = blob.size;
 
       // Step 1: Get presigned URL
@@ -490,6 +562,101 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [content, type, language, title]);
+
+  // PDF download for HTML content - converts rendered HTML to PDF
+  const [isGeneratingHtmlPdf, setIsGeneratingHtmlPdf] = useState(false);
+  const handleDownloadHtmlAsPdf = useCallback(async () => {
+    if (!content || type !== 'html' || isGeneratingHtmlPdf) return;
+
+    setIsGeneratingHtmlPdf(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
+
+      // Create an off-screen container to render the HTML
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '800px';
+      container.style.background = '#ffffff';
+      container.style.padding = '40px';
+      container.innerHTML = content;
+      document.body.appendChild(container);
+
+      // Wait for fonts and rendering
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Capture with html2canvas at high resolution
+      const canvas = await html2canvas(container, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        width: 800,
+      });
+
+      // Remove the temporary container
+      document.body.removeChild(container);
+
+      // Create PDF from canvas
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width / 2;
+      const imgHeight = canvas.height / 2;
+
+      // Standard Letter page size in points
+      const LETTER_WIDTH = 612;
+      const LETTER_HEIGHT = 792;
+      const margin = 36; // 0.5 inch margins
+      const contentWidth = LETTER_WIDTH - (margin * 2);
+
+      // Scale image to fit page width
+      const scale = contentWidth / imgWidth;
+      const scaledHeight = imgHeight * scale;
+
+      // Calculate number of pages needed
+      const pageContentHeight = LETTER_HEIGHT - (margin * 2);
+      const numPages = Math.ceil(scaledHeight / pageContentHeight);
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'letter',
+      });
+
+      // Add pages as needed
+      for (let page = 0; page < numPages; page++) {
+        if (page > 0) {
+          pdf.addPage();
+        }
+
+        // Calculate the portion of the image to show on this page
+        const srcY = (page * pageContentHeight) / scale;
+        const srcHeight = Math.min(pageContentHeight / scale, imgHeight - srcY);
+
+        // Create a canvas for just this page's content
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = srcHeight;
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          const img = new Image();
+          img.src = imgData;
+          await new Promise(resolve => { img.onload = resolve; });
+          ctx.drawImage(img, 0, srcY, imgWidth, srcHeight, 0, 0, imgWidth, srcHeight);
+          const pageImgData = pageCanvas.toDataURL('image/png');
+          pdf.addImage(pageImgData, 'PNG', margin, margin, contentWidth, srcHeight * scale);
+        }
+      }
+
+      pdf.save(`${(title || 'document').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+    } catch (error) {
+      console.error('HTML to PDF conversion failed:', error);
+      alert('PDF generation failed. Please try again.');
+    } finally {
+      setIsGeneratingHtmlPdf(false);
+    }
+  }, [content, type, title, isGeneratingHtmlPdf]);
 
   // PDF download for diagrams - scales to fit standard page
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -987,10 +1154,31 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </DropdownMenuItem>
+              {type === 'html' ? (
+                <>
+                  <DropdownMenuItem
+                    onClick={handleDownloadHtmlAsPdf}
+                    className="cursor-pointer"
+                    disabled={isGeneratingHtmlPdf}
+                  >
+                    {isGeneratingHtmlPdf ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileDown className="h-4 w-4 mr-2" />
+                    )}
+                    Download as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download as HTML
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleSaveToMyDocs} className="cursor-pointer" disabled={isSavingToMyDocs}>
                 <FolderPlus className="h-4 w-4 mr-2" />
                 Save to My Docs
