@@ -2850,7 +2850,7 @@ export default function Home() {
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`relative max-w-[75%] rounded-lg px-4 py-2 shadow-sm border ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground'}`}
+                    className={`relative max-w-[75%] rounded-lg px-4 py-2 shadow-sm border ${msg.role === 'user' ? 'chat-message-user bg-primary text-primary-foreground' : 'chat-message-assistant bg-card text-card-foreground'}`}
                   >
                     {/* Three-dot menu for assistant messages */}
                     {msg.role === 'assistant' && !msg._id.startsWith('progress-') && (

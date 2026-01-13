@@ -3,6 +3,7 @@
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
 import { useHelp } from '@/contexts/HelpContext';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface HeaderProps {
   // No children needed for this static header
@@ -18,6 +19,9 @@ export const Header: React.FC<HeaderProps> = () => {
 
       {/* Right side controls */}
       <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         {/* Help Mode Toggle Button */}
         <button
           onClick={toggleHelpMode}

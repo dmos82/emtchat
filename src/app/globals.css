@@ -700,6 +700,21 @@ input[type="reset"] {
   border: 1px solid var(--glass-border);
 }
 
+/* Chat message bubbles - preserve colors over glass effect */
+.emtchat-bg .chat-message-user {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.emtchat-bg .chat-message-assistant {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* Soften all borders in emtchat-bg */
 .emtchat-bg [class*="border"] {
   border-color: var(--glass-border) !important;
