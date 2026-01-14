@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { X, Copy, Download, Code, FileText, GitBranch, Globe, Loader2, ExternalLink, Table, BarChart3, Image, Save, Check, Sparkles, FileDown, FolderPlus, ChevronDown, FileSpreadsheet } from 'lucide-react';
+import { X, Copy, Download, Code, FileText, GitBranch, Globe, Loader2, ExternalLink, Table, BarChart3, Image, Save, Check, Sparkles, FileDown, FolderPlus, ChevronDown, FileSpreadsheet, HelpCircle, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +15,8 @@ import { DiagramCanvas } from './DiagramCanvas';
 import { HtmlCanvas } from './HtmlCanvas';
 import { ChartCanvas } from './ChartCanvas';
 import { TableCanvas } from './TableCanvas';
+import { QuizCanvas } from './QuizCanvas';
+import { FlashcardCanvas } from './FlashcardCanvas';
 import { cn } from '@/lib/utils';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { getApiBaseUrl } from '@/lib/config';
@@ -65,7 +67,7 @@ function createDocumentHtml(markdownContent: string, title: string): string {
 </html>`;
 }
 
-export type CanvasType = 'code' | 'document' | 'diagram' | 'html' | 'chart' | 'table' | null;
+export type CanvasType = 'code' | 'document' | 'diagram' | 'html' | 'chart' | 'table' | 'quiz' | 'flashcard' | null;
 
 // Detect if content contains tabular data (pipe-delimited tables)
 function detectTableData(content: string): boolean {
@@ -965,6 +967,10 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
         return <BarChart3 className="h-4 w-4" />;
       case 'table':
         return <FileSpreadsheet className="h-4 w-4" />;
+      case 'quiz':
+        return <HelpCircle className="h-4 w-4" />;
+      case 'flashcard':
+        return <Layers className="h-4 w-4" />;
       default:
         return null;
     }
@@ -984,6 +990,10 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
         return 'Chart';
       case 'table':
         return 'Spreadsheet';
+      case 'quiz':
+        return 'Quiz';
+      case 'flashcard':
+        return 'Flashcards';
       default:
         return '';
     }
@@ -1005,7 +1015,9 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
             type === 'diagram' && "bg-purple-500/10 text-purple-500",
             type === 'html' && "bg-orange-500/10 text-orange-500",
             type === 'chart' && "bg-amber-500/10 text-amber-500",
-            type === 'table' && "bg-emerald-500/10 text-emerald-500"
+            type === 'table' && "bg-emerald-500/10 text-emerald-500",
+            type === 'quiz' && "bg-cyan-500/10 text-cyan-500",
+            type === 'flashcard' && "bg-purple-500/10 text-purple-500"
           )}>
             {getIcon()}
           </span>
@@ -1245,6 +1257,12 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
         )}
         {type === 'table' && (
           <TableCanvas content={content} isStreaming={isStreaming} />
+        )}
+        {type === 'quiz' && (
+          <QuizCanvas content={content} isStreaming={isStreaming} />
+        )}
+        {type === 'flashcard' && (
+          <FlashcardCanvas content={content} isStreaming={isStreaming} />
         )}
       </div>
     </div>
