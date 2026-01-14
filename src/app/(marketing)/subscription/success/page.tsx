@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle, ArrowRight, Mail, Shield } from 'lucide-react';
+import { CheckCircle, ArrowRight, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export default function SubscriptionSuccessPage() {
+function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
@@ -74,5 +74,28 @@ export default function SubscriptionSuccessPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <div className={cn(
+        'max-w-lg w-full rounded-2xl p-8 text-center',
+        'bg-gray-900/80 backdrop-blur-sm',
+        'border border-white/10',
+      )}>
+        <Loader2 className="w-12 h-12 text-green-500 animate-spin mx-auto" />
+        <p className="text-gray-400 mt-4">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SuccessContent />
+    </Suspense>
   );
 }
