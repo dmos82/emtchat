@@ -8,7 +8,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { MessageSquare, FileText, Shield, Zap, Users, Clock, ArrowRight, CheckCircle } from 'lucide-react';
+import { MessageSquare, FileText, Shield, Zap, Users, Clock, ArrowRight, CheckCircle, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -49,16 +49,14 @@ function FeatureCard({
   );
 }
 
-// Testimonial card
-function TestimonialCard({
-  quote,
-  author,
-  role,
+// Problem/Solution card
+function ProblemSolutionCard({
+  problem,
+  solution,
   isDark,
 }: {
-  quote: string;
-  author: string;
-  role: string;
+  problem: string;
+  solution: string;
   isDark: boolean;
 }) {
   return (
@@ -68,23 +66,121 @@ function TestimonialCard({
         ? 'bg-gray-900/80 border border-white/10'
         : 'bg-white/80 border border-gray-200 shadow-sm',
     )}>
-      <p className={cn('italic mb-4 leading-relaxed', isDark ? 'text-gray-300' : 'text-gray-700')}>
-        &ldquo;{quote}&rdquo;
+      <p className={cn('font-semibold mb-2', isDark ? 'text-red-400' : 'text-red-600')}>
+        Problem:
       </p>
-      <div>
-        <p className={cn('font-semibold', isDark ? 'text-white' : 'text-gray-900')}>{author}</p>
-        <p className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-600')}>{role}</p>
-      </div>
+      <p className={cn('mb-4 leading-relaxed', isDark ? 'text-gray-300' : 'text-gray-700')}>
+        {problem}
+      </p>
+      <p className={cn('font-semibold mb-2', isDark ? 'text-green-400' : 'text-green-600')}>
+        Solution:
+      </p>
+      <p className={cn('leading-relaxed', isDark ? 'text-gray-300' : 'text-gray-700')}>
+        {solution}
+      </p>
     </div>
   );
 }
 
-// Stats component
+// Pricing tier component
+function PricingTier({
+  name,
+  price,
+  description,
+  features,
+  limits,
+  isPopular,
+  isDark,
+}: {
+  name: string;
+  price: string;
+  description: string;
+  features: { name: string; included: boolean }[];
+  limits: { name: string; value: string }[];
+  isPopular?: boolean;
+  isDark: boolean;
+}) {
+  return (
+    <div className={cn(
+      'rounded-2xl p-6 backdrop-blur-sm relative',
+      'transition-all duration-300',
+      isPopular
+        ? 'border-2 border-red-500 scale-105'
+        : isDark
+          ? 'bg-gray-900/80 border border-white/10'
+          : 'bg-white/80 border border-gray-200 shadow-sm',
+    )}>
+      {isPopular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+            Most Popular
+          </span>
+        </div>
+      )}
+      <div className="text-center mb-6">
+        <h3 className={cn('text-xl font-bold mb-1', isDark ? 'text-white' : 'text-gray-900')}>
+          {name}
+        </h3>
+        <div className="mb-2">
+          <span className={cn('text-3xl font-bold', isDark ? 'text-white' : 'text-gray-900')}>
+            {price}
+          </span>
+          {price !== 'Free' && <span className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>/mo</span>}
+        </div>
+        <p className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>
+          {description}
+        </p>
+      </div>
+      <div className="space-y-3 mb-6">
+        {limits.map((limit) => (
+          <div key={limit.name} className="flex justify-between text-sm">
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{limit.name}</span>
+            <span className={cn('font-medium', isDark ? 'text-white' : 'text-gray-900')}>{limit.value}</span>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        {features.map((feature) => (
+          <div key={feature.name} className="flex items-center gap-2 text-sm">
+            {feature.included ? (
+              <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+            ) : (
+              <X className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            )}
+            <span className={cn(
+              feature.included
+                ? (isDark ? 'text-gray-300' : 'text-gray-700')
+                : (isDark ? 'text-gray-500' : 'text-gray-400')
+            )}>
+              {feature.name}
+            </span>
+          </div>
+        ))}
+      </div>
+      <Link href="/signup" className="block mt-6">
+        <Button
+          className={cn(
+            'w-full',
+            isPopular
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : isDark
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-gray-900 hover:bg-gray-800 text-white'
+          )}
+        >
+          Get Started
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+// Stats component - Real benchmarks from internal testing
 function StatsSection({ isDark }: { isDark: boolean }) {
   const stats = [
-    { value: '500+', label: 'EMS Departments' },
-    { value: '50K+', label: 'Queries Answered' },
-    { value: '99.9%', label: 'Uptime' },
+    { value: '695+', label: 'Automated Tests' },
+    { value: '99%', label: 'RAG Accuracy' },
+    { value: '100%', label: 'Security Coverage' },
     { value: '<2s', label: 'Response Time' },
   ];
 
@@ -145,21 +241,98 @@ export default function LandingPage() {
     },
   ];
 
-  const testimonials = [
+  const problemsSolutions = [
     {
-      quote: 'EMTChat has transformed how our department accesses protocols. Response times are faster and more accurate.',
-      author: 'Sarah Mitchell',
-      role: 'Paramedic Supervisor, Metro Fire Department',
+      problem: 'EMT textbooks are 1000+ pages. Finding specific protocols during study sessions wastes time.',
+      solution: 'Upload your materials once. Ask questions like "What are the signs of tension pneumothorax?" and get instant, cited answers.',
     },
     {
-      quote: 'The AI understands medical terminology perfectly. Its like having a senior EMT always available to answer questions.',
-      author: 'James Rodriguez',
-      role: 'EMT-B, City Ambulance Services',
+      problem: 'Generic AI chatbots hallucinate medical information. You need answers from YOUR actual course materials.',
+      solution: 'RAG technology ensures answers come ONLY from your uploaded documents, with page citations you can verify.',
     },
     {
-      quote: 'Training new EMTs has never been easier. They can look up any protocol instantly and learn on the job.',
-      author: 'Dr. Emily Chen',
-      role: 'Medical Director, Regional EMS',
+      problem: 'Study groups can\'t share resources effectively. Everyone has different PDFs scattered across devices.',
+      solution: 'Create a shared knowledge base for your study group. Everyone queries the same verified materials.',
+    },
+  ];
+
+  const pricingTiers = [
+    {
+      name: 'Free',
+      price: 'Free',
+      description: 'Try it out',
+      limits: [
+        { name: 'Queries/month', value: '50' },
+        { name: 'Storage', value: '100MB' },
+        { name: 'Documents', value: '10' },
+        { name: 'Max file size', value: '5MB' },
+      ],
+      features: [
+        { name: 'Basic AI Chat', included: true },
+        { name: 'Document Upload', included: false },
+        { name: 'Search', included: false },
+        { name: 'Export', included: false },
+        { name: 'Personas', included: false },
+        { name: 'Team Sharing', included: false },
+      ],
+    },
+    {
+      name: 'Starter',
+      price: '$9',
+      description: 'For individual students',
+      limits: [
+        { name: 'Queries/month', value: '500' },
+        { name: 'Storage', value: '1GB' },
+        { name: 'Documents', value: '100' },
+        { name: 'Max file size', value: '25MB' },
+      ],
+      features: [
+        { name: 'Basic AI Chat', included: true },
+        { name: 'Document Upload', included: true },
+        { name: 'Search', included: true },
+        { name: 'Export', included: true },
+        { name: 'Personas', included: false },
+        { name: 'Team Sharing', included: false },
+      ],
+    },
+    {
+      name: 'Pro',
+      price: '$29',
+      description: 'For serious students',
+      isPopular: true,
+      limits: [
+        { name: 'Queries/month', value: '2,000' },
+        { name: 'Storage', value: '10GB' },
+        { name: 'Documents', value: '500' },
+        { name: 'Max file size', value: '50MB' },
+      ],
+      features: [
+        { name: 'Basic AI Chat', included: true },
+        { name: 'Document Upload', included: true },
+        { name: 'Search', included: true },
+        { name: 'Export', included: true },
+        { name: 'Personas', included: true },
+        { name: 'Team Sharing', included: false },
+      ],
+    },
+    {
+      name: 'Team',
+      price: '$99',
+      description: 'For study groups',
+      limits: [
+        { name: 'Queries/month', value: '10,000' },
+        { name: 'Storage', value: '50GB' },
+        { name: 'Documents', value: '2,000' },
+        { name: 'Max file size', value: '100MB' },
+      ],
+      features: [
+        { name: 'Basic AI Chat', included: true },
+        { name: 'Document Upload', included: true },
+        { name: 'Search', included: true },
+        { name: 'Export', included: true },
+        { name: 'Personas', included: true },
+        { name: 'Team Sharing', included: true },
+      ],
     },
   ];
 
@@ -170,10 +343,10 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl text-center">
           <div className={cn(
             'inline-block px-4 py-2 mb-6 rounded-full',
-            'bg-red-600/20 border border-red-500/30',
+            'bg-yellow-600/20 border border-yellow-500/30',
           )}>
-            <span className="text-sm font-medium text-red-400">
-              Trusted by 500+ EMS Departments
+            <span className="text-sm font-medium text-yellow-400">
+              🚧 Beta - Built for EMT/Paramedic Students
             </span>
           </div>
 
@@ -181,16 +354,16 @@ export default function LandingPage() {
             'text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight',
             isDark ? 'text-white' : 'text-gray-900'
           )}>
-            Your AI-Powered
+            Study Smarter with
             <br />
-            <span className="text-red-500">Medical Knowledge Base</span>
+            <span className="text-red-500">AI-Powered RAG</span>
           </h1>
 
           <p className={cn(
             'text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed',
             isDark ? 'text-gray-400' : 'text-gray-600'
           )}>
-            EMTChat helps Emergency Medical Technicians access protocols, procedures, and medical knowledge instantly using AI-powered document chat.
+            Upload your EMT/Paramedic study materials and get instant AI answers from YOUR documents. No more endless page flipping - ask questions, get cited answers.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -238,10 +411,10 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className={cn('text-3xl md:text-4xl font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>
-              Everything You Need for EMS Excellence
+              Built for EMT/Paramedic Students
             </h2>
             <p className={cn('text-lg max-w-2xl mx-auto', isDark ? 'text-gray-400' : 'text-gray-600')}>
-              Powerful features designed specifically for emergency medical professionals.
+              Features designed to help you study smarter, not harder.
             </p>
           </div>
 
@@ -253,7 +426,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Problem/Solution Section */}
       <section className={cn(
         'py-20 md:py-24 px-4',
         isDark ? 'bg-gray-900/50' : 'bg-gray-50/50'
@@ -261,16 +434,36 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className={cn('text-3xl md:text-4xl font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>
-              Trusted by EMS Professionals
+              Problems We Solve
             </h2>
             <p className={cn('text-lg max-w-2xl mx-auto', isDark ? 'text-gray-400' : 'text-gray-600')}>
-              See what emergency medical professionals are saying about EMTChat.
+              Built by developers who understand the challenges of studying dense medical material.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial) => (
-              <TestimonialCard key={testimonial.author} {...testimonial} isDark={isDark} />
+            {problemsSolutions.map((item, index) => (
+              <ProblemSolutionCard key={index} {...item} isDark={isDark} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-20 md:py-24 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h2 className={cn('text-3xl md:text-4xl font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>
+              Simple, Transparent Pricing
+            </h2>
+            <p className={cn('text-lg max-w-2xl mx-auto', isDark ? 'text-gray-400' : 'text-gray-600')}>
+              Start free, upgrade when you need more. 7-day grace period on downgrades.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {pricingTiers.map((tier) => (
+              <PricingTier key={tier.name} {...tier} isDark={isDark} />
             ))}
           </div>
         </div>
@@ -285,10 +478,10 @@ export default function LandingPage() {
             'border border-red-500/30',
           )}>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to Transform Your EMS Operations?
+              Ready to Ace Your EMT Exams?
             </h2>
             <p className="text-lg text-red-100 mb-8 max-w-2xl mx-auto">
-              Join hundreds of EMS departments already using EMTChat to improve response times and protocol adherence.
+              Start studying smarter today. Upload your EMT/Paramedic materials and get AI-powered answers in seconds.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/signup">
