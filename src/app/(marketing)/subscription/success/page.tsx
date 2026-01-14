@@ -1,16 +1,54 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const { user, isLoading, checkSession } = useAuth();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Check if user is already authenticated (token from signup)
+  useEffect(() => {
+    const verifyAuth = async () => {
+      if (checkSession) {
+        await checkSession();
+      }
+      setIsCheckingAuth(false);
+    };
+    verifyAuth();
+  }, [checkSession]);
+
+  // Redirect to welcome dashboard if authenticated
+  useEffect(() => {
+    if (!isCheckingAuth && !isLoading && user) {
+      router.push('/welcome');
+    }
+  }, [isCheckingAuth, isLoading, user, router]);
+
+  // Show loading while checking auth
+  if (isCheckingAuth || isLoading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <div className={cn(
+          'max-w-lg w-full rounded-2xl p-8 text-center',
+          'bg-gray-900/80 backdrop-blur-sm',
+          'border border-white/10',
+        )}>
+          <Loader2 className="w-12 h-12 text-green-500 animate-spin mx-auto" />
+          <p className="text-gray-400 mt-4">Verifying your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show success UI if not authenticated (needs to login)
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className={cn(
