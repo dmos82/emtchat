@@ -7,6 +7,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { MessageSquare, FileText, Shield, Zap, Users, Clock, ArrowRight, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,18 +17,20 @@ function FeatureCard({
   icon: Icon,
   title,
   description,
+  isDark,
 }: {
   icon: React.ElementType;
   title: string;
   description: string;
+  isDark: boolean;
 }) {
   return (
     <div className={cn(
-      'rounded-2xl p-6',
-      'bg-gray-900/80 backdrop-blur-sm',
-      'border border-white/10',
-      'hover:border-red-500/30 hover:bg-gray-900/90',
+      'rounded-2xl p-6 backdrop-blur-sm',
       'transition-all duration-300',
+      isDark
+        ? 'bg-gray-900/80 border border-white/10 hover:border-red-500/30 hover:bg-gray-900/90'
+        : 'bg-white/80 border border-gray-200 hover:border-red-500/30 hover:bg-white/90 shadow-sm',
     )}>
       <div className={cn(
         'w-12 h-12 rounded-xl mb-4',
@@ -36,10 +39,10 @@ function FeatureCard({
       )}>
         <Icon className="h-6 w-6 text-red-500" />
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">
+      <h3 className={cn('text-lg font-semibold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
         {title}
       </h3>
-      <p className="text-gray-400 text-sm leading-relaxed">
+      <p className={cn('text-sm leading-relaxed', isDark ? 'text-gray-400' : 'text-gray-600')}>
         {description}
       </p>
     </div>
@@ -51,30 +54,33 @@ function TestimonialCard({
   quote,
   author,
   role,
+  isDark,
 }: {
   quote: string;
   author: string;
   role: string;
+  isDark: boolean;
 }) {
   return (
     <div className={cn(
-      'rounded-2xl p-6',
-      'bg-gray-900/80 backdrop-blur-sm',
-      'border border-white/10',
+      'rounded-2xl p-6 backdrop-blur-sm',
+      isDark
+        ? 'bg-gray-900/80 border border-white/10'
+        : 'bg-white/80 border border-gray-200 shadow-sm',
     )}>
-      <p className="text-gray-300 italic mb-4 leading-relaxed">
+      <p className={cn('italic mb-4 leading-relaxed', isDark ? 'text-gray-300' : 'text-gray-700')}>
         &ldquo;{quote}&rdquo;
       </p>
       <div>
-        <p className="font-semibold text-white">{author}</p>
-        <p className="text-sm text-gray-500">{role}</p>
+        <p className={cn('font-semibold', isDark ? 'text-white' : 'text-gray-900')}>{author}</p>
+        <p className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-600')}>{role}</p>
       </div>
     </div>
   );
 }
 
 // Stats component
-function StatsSection() {
+function StatsSection({ isDark }: { isDark: boolean }) {
   const stats = [
     { value: '500+', label: 'EMS Departments' },
     { value: '50K+', label: 'Queries Answered' },
@@ -89,7 +95,7 @@ function StatsSection() {
           <div className="text-3xl md:text-4xl font-bold text-red-500 mb-1">
             {stat.value}
           </div>
-          <div className="text-sm text-gray-400">{stat.label}</div>
+          <div className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>{stat.label}</div>
         </div>
       ))}
     </div>
@@ -97,6 +103,15 @@ function StatsSection() {
 }
 
 export default function LandingPage() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = !mounted || resolvedTheme === 'dark';
+
   const features = [
     {
       icon: MessageSquare,
@@ -162,13 +177,19 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className={cn(
+            'text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight',
+            isDark ? 'text-white' : 'text-gray-900'
+          )}>
             Your AI-Powered
             <br />
             <span className="text-red-500">Medical Knowledge Base</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10 leading-relaxed">
+          <p className={cn(
+            'text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed',
+            isDark ? 'text-gray-400' : 'text-gray-600'
+          )}>
             EMTChat helps Emergency Medical Technicians access protocols, procedures, and medical knowledge instantly using AI-powered document chat.
           </p>
 
@@ -180,13 +201,16 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link href="/features">
-              <Button size="lg" variant="outline" className="px-8 h-12 text-base border-white/20 text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" className={cn(
+                'px-8 h-12 text-base',
+                isDark ? 'border-white/20 text-white hover:bg-white/10' : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              )}>
                 Learn More
               </Button>
             </Link>
           </div>
 
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
+          <div className={cn('flex items-center justify-center gap-6 mt-6 text-sm', isDark ? 'text-gray-500' : 'text-gray-600')}>
             <span className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
               No credit card required
@@ -200,9 +224,12 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="px-4 border-y border-white/10 bg-gray-900/50">
+      <section className={cn(
+        'px-4 border-y',
+        isDark ? 'border-white/10 bg-gray-900/50' : 'border-gray-200 bg-gray-50/50'
+      )}>
         <div className="container mx-auto max-w-6xl">
-          <StatsSection />
+          <StatsSection isDark={isDark} />
         </div>
       </section>
 
@@ -210,37 +237,40 @@ export default function LandingPage() {
       <section className="py-20 md:py-24 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className={cn('text-3xl md:text-4xl font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>
               Everything You Need for EMS Excellence
             </h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            <p className={cn('text-lg max-w-2xl mx-auto', isDark ? 'text-gray-400' : 'text-gray-600')}>
               Powerful features designed specifically for emergency medical professionals.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
-              <FeatureCard key={feature.title} {...feature} />
+              <FeatureCard key={feature.title} {...feature} isDark={isDark} />
             ))}
           </div>
         </div>
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 md:py-24 px-4 bg-gray-900/50">
+      <section className={cn(
+        'py-20 md:py-24 px-4',
+        isDark ? 'bg-gray-900/50' : 'bg-gray-50/50'
+      )}>
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className={cn('text-3xl md:text-4xl font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>
               Trusted by EMS Professionals
             </h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            <p className={cn('text-lg max-w-2xl mx-auto', isDark ? 'text-gray-400' : 'text-gray-600')}>
               See what emergency medical professionals are saying about EMTChat.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((testimonial) => (
-              <TestimonialCard key={testimonial.author} {...testimonial} />
+              <TestimonialCard key={testimonial.author} {...testimonial} isDark={isDark} />
             ))}
           </div>
         </div>

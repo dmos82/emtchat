@@ -62,6 +62,7 @@ function SignupContent() {
 
   // Form state
   const [formData, setFormData] = useState({
+    username: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -82,6 +83,14 @@ function SignupContent() {
   };
 
   const validateStep1 = () => {
+    if (!formData.username || formData.username.length < 3) {
+      setError('Username must be at least 3 characters');
+      return false;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      setError('Username can only contain letters, numbers, and underscores');
+      return false;
+    }
     if (!formData.firstName || !formData.lastName) {
       setError('Please enter your full name');
       return false;
@@ -119,7 +128,7 @@ function SignupContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: formData.email.split('@')[0], // Use email prefix as username
+          username: formData.username,
           email: formData.email,
           password: formData.password,
           firstName: formData.firstName,
@@ -150,18 +159,17 @@ function SignupContent() {
       }
 
       // Store token for authenticated request
-      localStorage.setItem('accessToken', registerData.accessToken);
+      localStorage.setItem('accessToken', registerData.token);
 
-      const checkoutResponse = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+      const checkoutResponse = await fetch(`${API_BASE_URL}/api/subscription/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${registerData.accessToken}`,
+          'Authorization': `Bearer ${registerData.token}`,
         },
         body: JSON.stringify({
-          priceId: selectedPlanData.stripePriceId,
-          successUrl: `${window.location.origin}/chat?subscription=success`,
-          cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+          tier: formData.selectedPlan,
+          interval: 'monthly',
         }),
       });
 
@@ -224,6 +232,23 @@ function SignupContent() {
             </h2>
 
             <form onSubmit={handleStep1Submit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <User className="h-4 w-4 inline mr-1" />
+                  Username *
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full h-11 px-4 bg-gray-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
+                  placeholder="johndoe123"
+                />
+                <p className="text-xs text-gray-500 mt-1">This is what you&apos;ll use to log in</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">

@@ -5,9 +5,10 @@
 
 'use client';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { Check, X, AlertCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -115,15 +116,15 @@ const featureComparison = [
   { feature: 'On-Premise Option', free: false, starter: false, pro: false, team: false, enterprise: true },
 ];
 
-function FeatureCell({ value }: { value: string | boolean }) {
+function FeatureCell({ value, isDark }: { value: string | boolean; isDark: boolean }) {
   if (typeof value === 'boolean') {
     return value ? (
       <Check className="h-5 w-5 text-green-500 mx-auto" />
     ) : (
-      <X className="h-5 w-5 text-gray-600 mx-auto" />
+      <X className={cn('h-5 w-5 mx-auto', isDark ? 'text-gray-600' : 'text-gray-400')} />
     );
   }
-  return <span className="text-gray-300">{value}</span>;
+  return <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{value}</span>;
 }
 
 function CanceledBanner() {
@@ -153,31 +154,42 @@ function CanceledBanner() {
 }
 
 function PricingContent() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = !mounted || resolvedTheme === 'dark';
 
   return (
     <div className="py-12 md:py-20 px-4">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h1 className={cn('text-4xl md:text-5xl font-bold mb-4', isDark ? 'text-white' : 'text-gray-900')}>
             Simple, Transparent Pricing
           </h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className={cn('text-xl max-w-2xl mx-auto', isDark ? 'text-gray-400' : 'text-gray-600')}>
             Choose the plan that fits your needs. All plans include our core AI chat features.
           </p>
         </div>
 
         {/* Billing Toggle */}
         <div className="flex justify-center mb-10">
-          <div className="bg-gray-900/80 p-1 rounded-lg border border-white/10 inline-flex">
+          <div className={cn(
+            'p-1 rounded-lg inline-flex',
+            isDark ? 'bg-gray-900/80 border border-white/10' : 'bg-gray-100 border border-gray-200'
+          )}>
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={cn(
                 'px-6 py-2 rounded-md text-sm font-medium transition-all',
                 billingPeriod === 'monthly'
                   ? 'bg-red-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
               )}
             >
               Monthly
@@ -188,7 +200,7 @@ function PricingContent() {
                 'px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2',
                 billingPeriod === 'yearly'
                   ? 'bg-red-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
               )}
             >
               Yearly
@@ -210,12 +222,12 @@ function PricingContent() {
             <div
               key={plan.id}
               className={cn(
-                'rounded-2xl p-6 flex flex-col',
-                'bg-gray-900/80 backdrop-blur-sm',
+                'rounded-2xl p-6 flex flex-col backdrop-blur-sm',
                 'border-2',
+                isDark ? 'bg-gray-900/80' : 'bg-white/80 shadow-sm',
                 plan.popular
                   ? 'border-red-500 relative'
-                  : 'border-white/10',
+                  : isDark ? 'border-white/10' : 'border-gray-200',
               )}
             >
               {plan.popular && (
@@ -226,16 +238,16 @@ function PricingContent() {
                 </div>
               )}
 
-              <h3 className="text-xl font-semibold text-white mb-1">{plan.name}</h3>
-              <p className="text-sm text-gray-400 mb-4">{plan.description}</p>
+              <h3 className={cn('text-xl font-semibold mb-1', isDark ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
+              <p className={cn('text-sm mb-4', isDark ? 'text-gray-400' : 'text-gray-600')}>{plan.description}</p>
 
               <div className="mb-6">
-                <span className="text-4xl font-bold text-white">
+                <span className={cn('text-4xl font-bold', isDark ? 'text-white' : 'text-gray-900')}>
                   ${billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}
                 </span>
-                <span className="text-gray-400">/month</span>
+                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>/month</span>
                 {billingPeriod === 'yearly' && plan.monthlyPrice > 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className={cn('text-sm mt-1', isDark ? 'text-gray-500' : 'text-gray-500')}>
                     Billed annually (${(plan.yearlyPrice * 12).toFixed(0)}/year)
                   </p>
                 )}
@@ -243,7 +255,7 @@ function PricingContent() {
 
               <ul className="space-y-3 mb-6 flex-1">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
+                  <li key={feature} className={cn('flex items-start gap-2 text-sm', isDark ? 'text-gray-300' : 'text-gray-700')}>
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
                     {feature}
                   </li>
@@ -256,7 +268,7 @@ function PricingContent() {
                     'w-full h-11',
                     plan.popular
                       ? 'bg-red-600 hover:bg-red-700 text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-white'
+                      : isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
                   )}
                 >
                   {plan.monthlyPrice === 0 ? 'Get Started Free' : 'Start Free Trial'}
@@ -270,16 +282,17 @@ function PricingContent() {
         {/* Enterprise CTA */}
         <div className={cn(
           'rounded-2xl p-8 mb-20',
-          'bg-gradient-to-r from-gray-900 to-gray-800',
-          'border border-white/10',
+          isDark
+            ? 'bg-gradient-to-r from-gray-900 to-gray-800 border border-white/10'
+            : 'bg-gradient-to-r from-gray-100 to-gray-50 border border-gray-200 shadow-sm',
         )}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h3 className="text-2xl font-bold text-white mb-2">{enterprisePlan.name}</h3>
-              <p className="text-gray-400 mb-4">{enterprisePlan.description}</p>
+              <h3 className={cn('text-2xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>{enterprisePlan.name}</h3>
+              <p className={cn('mb-4', isDark ? 'text-gray-400' : 'text-gray-600')}>{enterprisePlan.description}</p>
               <div className="flex flex-wrap gap-4">
                 {enterprisePlan.features.slice(0, 4).map((feature) => (
-                  <span key={feature} className="flex items-center gap-2 text-sm text-gray-300">
+                  <span key={feature} className={cn('flex items-center gap-2 text-sm', isDark ? 'text-gray-300' : 'text-gray-700')}>
                     <Check className="h-4 w-4 text-green-500" />
                     {feature}
                   </span>
@@ -287,7 +300,10 @@ function PricingContent() {
               </div>
             </div>
             <Link href="/contact">
-              <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100 px-8 whitespace-nowrap">
+              <Button size="lg" className={cn(
+                'px-8 whitespace-nowrap',
+                isDark ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-red-600 text-white hover:bg-red-700'
+              )}>
                 Contact Sales
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -297,35 +313,34 @@ function PricingContent() {
 
         {/* Feature comparison table */}
         <div>
-          <h2 className="text-2xl font-bold text-white text-center mb-8">
+          <h2 className={cn('text-2xl font-bold text-center mb-8', isDark ? 'text-white' : 'text-gray-900')}>
             Compare All Features
           </h2>
 
           <div className={cn(
-            'rounded-2xl overflow-hidden',
-            'bg-gray-900/80 backdrop-blur-sm',
-            'border border-white/10',
+            'rounded-2xl overflow-hidden backdrop-blur-sm',
+            isDark ? 'bg-gray-900/80 border border-white/10' : 'bg-white/80 border border-gray-200 shadow-sm',
           )}>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                  <tr className={isDark ? 'border-b border-white/10' : 'border-b border-gray-200'}>
+                    <th className={cn('px-6 py-4 text-left text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>
                       Feature
                     </th>
-                    <th className="px-4 py-4 text-center text-sm font-semibold text-white">
+                    <th className={cn('px-4 py-4 text-center text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>
                       Free
                     </th>
-                    <th className="px-4 py-4 text-center text-sm font-semibold text-white">
+                    <th className={cn('px-4 py-4 text-center text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>
                       Starter
                     </th>
-                    <th className="px-4 py-4 text-center text-sm font-semibold text-red-400">
+                    <th className="px-4 py-4 text-center text-sm font-semibold text-red-500">
                       Pro
                     </th>
-                    <th className="px-4 py-4 text-center text-sm font-semibold text-white">
+                    <th className={cn('px-4 py-4 text-center text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>
                       Team
                     </th>
-                    <th className="px-4 py-4 text-center text-sm font-semibold text-white">
+                    <th className={cn('px-4 py-4 text-center text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>
                       Enterprise
                     </th>
                   </tr>
@@ -335,27 +350,27 @@ function PricingContent() {
                     <tr
                       key={row.feature}
                       className={cn(
-                        'border-b border-white/5',
-                        idx % 2 === 0 && 'bg-white/5',
+                        isDark ? 'border-b border-white/5' : 'border-b border-gray-100',
+                        idx % 2 === 0 && (isDark ? 'bg-white/5' : 'bg-gray-50/50'),
                       )}
                     >
-                      <td className="px-6 py-4 text-sm text-gray-300">
+                      <td className={cn('px-6 py-4 text-sm', isDark ? 'text-gray-300' : 'text-gray-700')}>
                         {row.feature}
                       </td>
                       <td className="px-4 py-4 text-center text-sm">
-                        <FeatureCell value={row.free} />
+                        <FeatureCell value={row.free} isDark={isDark} />
                       </td>
                       <td className="px-4 py-4 text-center text-sm">
-                        <FeatureCell value={row.starter} />
+                        <FeatureCell value={row.starter} isDark={isDark} />
                       </td>
-                      <td className="px-4 py-4 text-center text-sm bg-red-500/5">
-                        <FeatureCell value={row.pro} />
-                      </td>
-                      <td className="px-4 py-4 text-center text-sm">
-                        <FeatureCell value={row.team} />
+                      <td className={cn('px-4 py-4 text-center text-sm', isDark ? 'bg-red-500/5' : 'bg-red-50')}>
+                        <FeatureCell value={row.pro} isDark={isDark} />
                       </td>
                       <td className="px-4 py-4 text-center text-sm">
-                        <FeatureCell value={row.enterprise} />
+                        <FeatureCell value={row.team} isDark={isDark} />
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm">
+                        <FeatureCell value={row.enterprise} isDark={isDark} />
                       </td>
                     </tr>
                   ))}
@@ -367,7 +382,7 @@ function PricingContent() {
 
         {/* FAQ Section */}
         <div className="mt-20">
-          <h2 className="text-2xl font-bold text-white text-center mb-8">
+          <h2 className={cn('text-2xl font-bold text-center mb-8', isDark ? 'text-white' : 'text-gray-900')}>
             Frequently Asked Questions
           </h2>
 
@@ -393,15 +408,16 @@ function PricingContent() {
               <div
                 key={faq.q}
                 className={cn(
-                  'rounded-xl p-6',
-                  'bg-gray-900/80 backdrop-blur-sm',
-                  'border border-white/10',
+                  'rounded-xl p-6 backdrop-blur-sm',
+                  isDark
+                    ? 'bg-gray-900/80 border border-white/10'
+                    : 'bg-white/80 border border-gray-200 shadow-sm',
                 )}
               >
-                <h3 className="font-semibold text-white mb-2">
+                <h3 className={cn('font-semibold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
                   {faq.q}
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>
                   {faq.a}
                 </p>
               </div>
