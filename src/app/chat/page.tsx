@@ -58,6 +58,7 @@ import { FeedbackButtons } from '@/components/chat/FeedbackButtons';
 import { FeedbackModal } from '@/components/chat/FeedbackModal';
 import AdvancedSearchSuggestion from '@/components/chat/AdvancedSearchSuggestion';
 import { ChatDocumentViewer } from '@/components/chat/ChatDocumentViewer';
+import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
 // Agent Helper removed - see feature/agent-helper-archived branch
 
 // Define SourceDocument type
@@ -2620,6 +2621,7 @@ export default function Home() {
   // Wrap the main content with ProtectedRoute
   return (
     <ProtectedRoute>
+      <WelcomeModal />
       <div className="flex fixed inset-0 md:relative md:h-screen bg-background text-foreground p-2 md:p-4 overflow-hidden emtchat-bg">
         {/* 1. Left Sidebar - Hidden on mobile */}
         <div className="hidden md:block">

@@ -9,7 +9,7 @@ import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Check, X, AlertCircle, ArrowRight } from 'lucide-react';
+import { Check, X, AlertCircle, ArrowRight, Shield, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -277,6 +277,34 @@ function PricingContent() {
               </Link>
             </div>
           ))}
+        </div>
+
+        {/* Trust Badges */}
+        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mb-12 px-4">
+          <div className="flex items-center gap-2">
+            <X className={cn('h-5 w-5', isDark ? 'text-gray-500' : 'text-gray-400')} />
+            <span className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>
+              Cancel Anytime
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Shield className={cn('h-5 w-5', isDark ? 'text-gray-500' : 'text-gray-400')} />
+            <span className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>
+              Secure Checkout
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className={cn('h-5 w-5', isDark ? 'text-gray-500' : 'text-gray-400')} />
+            <span className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>
+              No Hidden Fees
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <RotateCcw className={cn('h-5 w-5', isDark ? 'text-gray-500' : 'text-gray-400')} />
+            <span className={cn('text-sm', isDark ? 'text-gray-400' : 'text-gray-600')}>
+              30-Day Money Back
+            </span>
+          </div>
         </div>
 
         {/* Enterprise CTA */}
