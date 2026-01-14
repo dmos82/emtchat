@@ -79,7 +79,7 @@ export default function UsagePage() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
             Monthly Usage
           </h1>
-          <Link href="/" passHref>
+          <Link href="/chat" passHref>
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Chat

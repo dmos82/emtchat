@@ -1454,7 +1454,7 @@ export default function AdminPage() {
           {/* Header */}
           <header className="flex items-center justify-between p-4 border-b flex-shrink-0">
             <h1 className="text-3xl md:text-3xl text-xl font-bold">Admin Dashboard</h1>
-            <Link href="/">
+            <Link href="/chat">
               <Button variant="outline" size="sm">
                 <Home className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Back to Chat</span>

@@ -1140,7 +1140,7 @@ export default function DocumentManagerPage() {
     <ProtectedRoute>
       <div className="container mx-auto p-4 md:p-6 bg-background min-h-screen flex flex-col emtchat-bg">
         <div className="mb-4">
-          <Link href="/" passHref legacyBehavior>
+          <Link href="/chat" passHref legacyBehavior>
             <Button variant="outline">Back to Chat</Button>
           </Link>
         </div>
