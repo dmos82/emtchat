@@ -262,10 +262,7 @@ export default function LandingPage() {
       price: 'Free',
       description: 'Try it out',
       limits: [
-        { name: 'Queries/month', value: '50' },
-        { name: 'Storage', value: '100MB' },
-        { name: 'Documents', value: '10' },
-        { name: 'Max file size', value: '5MB' },
+        { name: 'Queries/month', value: '10' },
       ],
       features: [
         { name: 'Basic AI Chat', included: true },
@@ -273,17 +270,16 @@ export default function LandingPage() {
         { name: 'Search', included: false },
         { name: 'Export', included: false },
         { name: 'Personas', included: false },
-        { name: 'Team Sharing', included: false },
       ],
     },
     {
       name: 'Starter',
-      price: '$9',
+      price: '$10',
       description: 'For individual students',
       limits: [
-        { name: 'Queries/month', value: '500' },
-        { name: 'Storage', value: '1GB' },
-        { name: 'Documents', value: '100' },
+        { name: 'Queries/month', value: '200' },
+        { name: 'Storage', value: '512MB' },
+        { name: 'Documents', value: '20' },
         { name: 'Max file size', value: '25MB' },
       ],
       features: [
@@ -292,19 +288,18 @@ export default function LandingPage() {
         { name: 'Search', included: true },
         { name: 'Export', included: true },
         { name: 'Personas', included: false },
-        { name: 'Team Sharing', included: false },
       ],
     },
     {
       name: 'Pro',
-      price: '$29',
+      price: '$29.99',
       description: 'For serious students',
       isPopular: true,
       limits: [
-        { name: 'Queries/month', value: '2,000' },
-        { name: 'Storage', value: '10GB' },
-        { name: 'Documents', value: '500' },
-        { name: 'Max file size', value: '50MB' },
+        { name: 'Queries/month', value: '1,000' },
+        { name: 'Storage', value: '2GB' },
+        { name: 'Documents', value: '50' },
+        { name: 'Max file size', value: '300MB' },
       ],
       features: [
         { name: 'Basic AI Chat', included: true },
@@ -312,18 +307,17 @@ export default function LandingPage() {
         { name: 'Search', included: true },
         { name: 'Export', included: true },
         { name: 'Personas', included: true },
-        { name: 'Team Sharing', included: false },
       ],
     },
     {
-      name: 'Team',
-      price: '$99',
-      description: 'For study groups',
+      name: 'Classroom',
+      price: '$150',
+      description: '15 seats (1 instructor + 14 students)',
       limits: [
         { name: 'Queries/month', value: '10,000' },
-        { name: 'Storage', value: '50GB' },
-        { name: 'Documents', value: '2,000' },
-        { name: 'Max file size', value: '100MB' },
+        { name: 'Storage', value: '20GB' },
+        { name: 'Documents', value: '150' },
+        { name: 'Max file size', value: '500MB' },
       ],
       features: [
         { name: 'Basic AI Chat', included: true },
@@ -331,7 +325,7 @@ export default function LandingPage() {
         { name: 'Search', included: true },
         { name: 'Export', included: true },
         { name: 'Personas', included: true },
-        { name: 'Team Sharing', included: true },
+        { name: '30% off for students', included: true },
       ],
     },
   ];
@@ -465,6 +459,36 @@ export default function LandingPage() {
             {pricingTiers.map((tier) => (
               <PricingTier key={tier.name} {...tier} isDark={isDark} />
             ))}
+          </div>
+
+          {/* Enterprise Section */}
+          <div className={cn(
+            'mt-12 rounded-2xl p-8 text-center',
+            isDark
+              ? 'bg-gradient-to-r from-gray-900 to-gray-800 border border-white/10'
+              : 'bg-gradient-to-r from-gray-100 to-gray-50 border border-gray-200'
+          )}>
+            <h3 className={cn('text-2xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
+              Enterprise
+            </h3>
+            <p className={cn('text-lg mb-4', isDark ? 'text-gray-400' : 'text-gray-600')}>
+              Custom solutions for your institution&apos;s needs and branding
+            </p>
+            <p className={cn('text-sm mb-6', isDark ? 'text-gray-500' : 'text-gray-500')}>
+              SSO • Custom Integrations • Dedicated Support • HIPAA BAA • Custom SLA
+            </p>
+            <a
+              href="mailto:admin@emtchat.com"
+              className={cn(
+                'inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors',
+                isDark
+                  ? 'bg-white text-gray-900 hover:bg-gray-100'
+                  : 'bg-gray-900 text-white hover:bg-gray-800'
+              )}
+            >
+              Contact Us
+              <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </section>
