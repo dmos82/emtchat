@@ -271,7 +271,7 @@ function PricingContent() {
                       : isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
                   )}
                 >
-                  {plan.monthlyPrice === 0 ? 'Get Started Free' : 'Start Free Trial'}
+                  {plan.monthlyPrice === 0 ? 'Get Started Free' : 'Subscribe Now'}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -398,7 +398,7 @@ function PricingContent() {
               },
               {
                 q: 'Is there a free trial?',
-                a: 'The Free tier gives you 50 queries per month permanently. For paid tiers, we offer a 14-day money-back guarantee.',
+                a: 'Yes! Our Free tier gives you 50 queries per month permanently - no credit card required. Upgrade anytime when you need more.',
               },
               {
                 q: 'How does team billing work?',
