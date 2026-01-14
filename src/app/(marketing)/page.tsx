@@ -212,12 +212,12 @@ export default function LandingPage() {
     {
       icon: MessageSquare,
       title: 'AI-Powered Chat',
-      description: 'Ask questions about your medical protocols and get instant, accurate answers powered by advanced AI.',
+      description: 'Ask questions about your study materials and get instant, accurate answers powered by advanced AI.',
     },
     {
       icon: FileText,
       title: 'Document Management',
-      description: 'Upload and organize your medical documents, protocols, and reference materials in one secure place.',
+      description: 'Upload and organize your medical documents and reference materials in one secure place.',
     },
     {
       icon: Shield,
@@ -232,7 +232,7 @@ export default function LandingPage() {
     {
       icon: Users,
       title: 'Team Collaboration',
-      description: 'Share knowledge bases with your team and collaborate on protocols and procedures.',
+      description: 'Share knowledge bases with your team and collaborate on study materials.',
     },
     {
       icon: Clock,
@@ -243,7 +243,7 @@ export default function LandingPage() {
 
   const problemsSolutions = [
     {
-      problem: 'EMT textbooks are 1000+ pages. Finding specific protocols during study sessions wastes time.',
+      problem: 'EMT textbooks are 1000+ pages. Finding specific information during study sessions wastes time.',
       solution: 'Upload your materials once. Ask questions like "What are the signs of tension pneumothorax?" and get instant, cited answers.',
     },
     {
