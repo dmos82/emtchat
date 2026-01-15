@@ -1361,8 +1361,10 @@ const FileTreeManager: React.FC<FileTreeManagerProps> = ({ mode = 'system' }) =>
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 p-4 border-b">
+        {/* Row 1: Core actions + Search/View controls */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="icon"
@@ -1431,9 +1433,49 @@ const FileTreeManager: React.FC<FileTreeManagerProps> = ({ mode = 'system' }) =>
               <RotateCcw className={cn("h-4 w-4", isReprocessing && "animate-spin")} />
             </Button>
           )}
-          {selectedItems.size > 0 && (
-            <>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative" data-help-id="docs-search">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none hidden md:block" />
+              <Input
+                type="search"
+                placeholder="Search files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-3 md:pl-9 w-40 md:w-64"
+              />
+            </div>
+
+            <div className="flex border rounded-lg">
               <Button
+                variant={viewMode === 'tree' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('tree')}
+              >
+                <FolderTree className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid3x3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Selection actions (only shown when items selected) */}
+        {selectedItems.size > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
                 variant="outline"
                 size="sm"
                 data-help-id="docs-download"
@@ -1591,46 +1633,8 @@ const FileTreeManager: React.FC<FileTreeManagerProps> = ({ mode = 'system' }) =>
               >
                 Clear
               </Button>
-            </>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="relative" data-help-id="docs-search">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none hidden md:block" />
-            <Input
-              type="search"
-              placeholder="Search files..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-3 md:pl-9 w-64"
-            />
           </div>
-          
-          <div className="flex border rounded-lg">
-            <Button
-              variant={viewMode === 'tree' ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={() => setViewMode('tree')}
-            >
-              <FolderTree className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        )}
       </div>
       
       {/* Content */}
