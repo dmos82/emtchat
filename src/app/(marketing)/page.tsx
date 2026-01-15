@@ -26,15 +26,14 @@ function FeatureCard({
 }) {
   return (
     <div className={cn(
-      'rounded-2xl p-6 backdrop-blur-sm',
-      'transition-all duration-300',
+      'p-6 transition-all duration-300',
       isDark
-        ? 'bg-gray-900/80 border border-white/10 hover:border-red-500/30 hover:bg-gray-900/90'
-        : 'bg-white/80 border border-gray-200 hover:border-red-500/30 hover:bg-white/90 shadow-sm',
+        ? 'bg-[#2a2a2a] border-[3px] border-[#444444] shadow-[4px_4px_0_#444444] hover:border-[#5AC8FA] hover:shadow-[4px_4px_0_#5AC8FA]'
+        : 'bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] hover:border-red-500 hover:shadow-[4px_4px_0_#1a1a1a]',
     )}>
       <div className={cn(
-        'w-12 h-12 rounded-xl mb-4',
-        'bg-red-600/20',
+        'w-12 h-12 mb-4 border-[2px]',
+        isDark ? 'bg-[#444444] border-[#5AC8FA]' : 'bg-red-600/20 border-red-500',
         'flex items-center justify-center',
       )}>
         <Icon className="h-6 w-6 text-red-500" />
@@ -61,12 +60,12 @@ function ProblemSolutionCard({
 }) {
   return (
     <div className={cn(
-      'rounded-2xl p-6 backdrop-blur-sm',
+      'p-6',
       isDark
-        ? 'bg-gray-900/80 border border-white/10'
-        : 'bg-white/80 border border-gray-200 shadow-sm',
+        ? 'bg-[#2a2a2a] border-[3px] border-[#444444] shadow-[4px_4px_0_#444444]'
+        : 'bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]',
     )}>
-      <p className={cn('font-semibold mb-2', isDark ? 'text-red-400' : 'text-red-600')}>
+      <p className={cn('font-semibold mb-2 font-mono', isDark ? 'text-red-400' : 'text-red-600')}>
         Problem:
       </p>
       <p className={cn('mb-4 leading-relaxed', isDark ? 'text-gray-300' : 'text-gray-700')}>
@@ -102,18 +101,17 @@ function PricingTier({
 }) {
   return (
     <div className={cn(
-      'rounded-2xl p-6 backdrop-blur-sm relative',
-      'transition-all duration-300',
+      'p-6 relative transition-all duration-300',
       isPopular
-        ? 'border-2 border-red-500 scale-105'
+        ? 'bg-[#2a2a2a] border-[3px] border-[#5AC8FA] shadow-[4px_4px_0_#5AC8FA] scale-105'
         : isDark
-          ? 'bg-gray-900/80 border border-white/10'
-          : 'bg-white/80 border border-gray-200 shadow-sm',
+          ? 'bg-[#2a2a2a] border-[3px] border-[#444444] shadow-[4px_4px_0_#444444]'
+          : 'bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]',
     )}>
       {isPopular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-            Most Popular
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span className="bg-[#5AC8FA] text-[#1a1a1a] text-xs font-bold px-3 py-1 border-2 border-[#1a1a1a] font-mono">
+            MOST POPULAR
           </span>
         </div>
       )}
@@ -331,7 +329,10 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex flex-col">
+    <div className={cn(
+      "flex flex-col min-h-screen",
+      isDark && "pixel-grid-bg"
+    )}>
       {/* Hero Section */}
       <section className="py-20 md:py-32 px-4">
         <div className="container mx-auto max-w-6xl text-center">
@@ -463,30 +464,30 @@ export default function LandingPage() {
 
           {/* Enterprise Section */}
           <div className={cn(
-            'mt-12 rounded-2xl p-8 text-center',
+            'mt-12 p-8 text-center',
             isDark
-              ? 'bg-gradient-to-r from-gray-900 to-gray-800 border border-white/10'
-              : 'bg-gradient-to-r from-gray-100 to-gray-50 border border-gray-200'
+              ? 'bg-[#2a2a2a] border-[3px] border-[#5AC8FA] shadow-[4px_4px_0_#5AC8FA]'
+              : 'bg-gray-100 border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]'
           )}>
-            <h3 className={cn('text-2xl font-bold mb-2', isDark ? 'text-white' : 'text-gray-900')}>
-              Enterprise
+            <h3 className={cn('text-2xl font-bold mb-2 font-mono', isDark ? 'text-white' : 'text-gray-900')}>
+              ENTERPRISE
             </h3>
             <p className={cn('text-lg mb-4', isDark ? 'text-gray-400' : 'text-gray-600')}>
               Custom solutions for your institution&apos;s needs and branding
             </p>
-            <p className={cn('text-sm mb-6', isDark ? 'text-gray-500' : 'text-gray-500')}>
+            <p className={cn('text-sm mb-6 font-mono', isDark ? 'text-gray-500' : 'text-gray-500')}>
               SSO • Custom Integrations • Dedicated Support • HIPAA BAA • Custom SLA
             </p>
             <a
               href="mailto:admin@emtchat.com"
               className={cn(
-                'inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors',
+                'inline-flex items-center gap-2 px-6 py-3 font-bold font-mono transition-colors border-[2px]',
                 isDark
-                  ? 'bg-white text-gray-900 hover:bg-gray-100'
-                  : 'bg-gray-900 text-white hover:bg-gray-800'
+                  ? 'bg-[#5AC8FA] text-[#1a1a1a] border-[#1a1a1a] hover:bg-white'
+                  : 'bg-[#1a1a1a] text-white border-[#1a1a1a] hover:bg-gray-800'
               )}
             >
-              Contact Us
+              CONTACT US
               <ArrowRight className="h-4 w-4" />
             </a>
           </div>
@@ -497,26 +498,25 @@ export default function LandingPage() {
       <section className="py-20 md:py-24 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className={cn(
-            'rounded-3xl p-8 md:p-12 text-center',
-            'bg-gradient-to-br from-red-600 to-red-800',
-            'border border-red-500/30',
+            'p-8 md:p-12 text-center',
+            'bg-[#5AC8FA] border-[3px] border-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a]',
           )}>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to Ace Your EMT Exams?
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1a1a1a] mb-4 font-mono">
+              READY TO ACE YOUR EMT EXAMS?
             </h2>
-            <p className="text-lg text-red-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-[#1a1a1a]/80 mb-8 max-w-2xl mx-auto">
               Start studying smarter today. Upload your EMT/Paramedic materials and get AI-powered answers in seconds.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/signup">
-                <Button size="lg" className="bg-white text-red-600 hover:bg-gray-100 px-8 h-12">
-                  Get Started Free
+                <Button size="lg" className="bg-[#1a1a1a] text-white hover:bg-gray-800 px-8 h-12 border-[2px] border-[#1a1a1a] font-mono font-bold">
+                  GET STARTED FREE
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="px-8 h-12 border-white/30 text-white hover:bg-white/10">
-                  View Pricing
+                <Button size="lg" variant="outline" className="px-8 h-12 border-[2px] border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#1a1a1a]/10 font-mono font-bold">
+                  VIEW PRICING
                 </Button>
               </Link>
             </div>
