@@ -3321,7 +3321,7 @@ export default function Home() {
             </div>
             {/* Right Panel */}
             <div
-              className="border-l border-border flex flex-col h-full flex-shrink-0"
+              className="border-l border-border flex flex-col h-full flex-shrink-0 overflow-hidden"
               style={{
                 width: `${rightPanelWidth}px`,
                 maxWidth: 'calc(100vw - 350px)', // Never exceed viewport minus left sidebar
@@ -3337,8 +3337,8 @@ export default function Home() {
               />
             ) : (
               // Show tabs when no document is selected
-              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="flex flex-col h-full bg-card right-panel-tabs">
-                <TabsList className="grid w-full grid-cols-4 p-1 m-2">
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="flex flex-col h-full bg-[#1a1a1a] right-panel-tabs">
+                <TabsList className="grid w-full grid-cols-4 p-1 m-2 bg-[#2a2a2a]">
                   <TabsTrigger value="notes" className="text-xs" data-help-id="panel-notes-tab">Notes</TabsTrigger>
                   <TabsTrigger value="canvas" className="text-xs relative" data-help-id="panel-canvas-tab">
                     Canvas

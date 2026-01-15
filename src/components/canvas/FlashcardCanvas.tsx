@@ -243,18 +243,20 @@ export const FlashcardCanvas: React.FC<FlashcardCanvasProps> = ({ content, isStr
                     transform: (isFlipped || showAllAnswers) ? 'rotateY(180deg)' : 'rotateY(0deg)',
                   }}
                 >
-                  {/* Front of Card */}
+                  {/* Front of Card - Pixel Art Style */}
                   <div
                     className={cn(
-                      "absolute inset-0 rounded-2xl p-6 flex flex-col items-center justify-center text-center",
-                      "bg-gradient-to-br from-purple-500/20 via-purple-600/10 to-blue-500/20",
-                      "border-2 border-purple-500/30 shadow-lg",
+                      "absolute inset-0 p-6 flex flex-col items-center justify-center text-center",
+                      "bg-[#2a2a2a]",
+                      "border-[3px] border-[#444444]",
+                      "shadow-[4px_4px_0_#444444]",
+                      "font-mono",
                       "backface-hidden"
                     )}
-                    style={{ backfaceVisibility: 'hidden' }}
+                    style={{ backfaceVisibility: 'hidden', borderRadius: 0 }}
                   >
-                    <div className="text-xs text-purple-400 uppercase tracking-wider mb-4">
-                      Question / Term
+                    <div className="text-xs text-[#5AC8FA] uppercase tracking-wider mb-4 font-mono">
+                      QUESTION / TERM
                     </div>
                     <div className="text-xl font-semibold text-foreground leading-relaxed">
                       {currentCard.front}
@@ -264,7 +266,7 @@ export const FlashcardCanvas: React.FC<FlashcardCanvasProps> = ({ content, isStr
                         {currentCard.tags.map((tag, i) => (
                           <span
                             key={i}
-                            className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300"
+                            className="px-2 py-1 text-xs bg-[#444444] text-[#5AC8FA] border border-[#5AC8FA] font-mono"
                           >
                             {tag}
                           </span>
@@ -276,21 +278,24 @@ export const FlashcardCanvas: React.FC<FlashcardCanvasProps> = ({ content, isStr
                     </div>
                   </div>
 
-                  {/* Back of Card */}
+                  {/* Back of Card - Pixel Art Style */}
                   <div
                     className={cn(
-                      "absolute inset-0 rounded-2xl p-6 flex flex-col items-center justify-center text-center",
-                      "bg-gradient-to-br from-green-500/20 via-emerald-600/10 to-teal-500/20",
-                      "border-2 border-green-500/30 shadow-lg",
+                      "absolute inset-0 p-6 flex flex-col items-center justify-center text-center",
+                      "bg-[#2a2a2a]",
+                      "border-[3px] border-[#5AC8FA]",
+                      "shadow-[4px_4px_0_#5AC8FA]",
+                      "font-mono",
                       "backface-hidden rotate-y-180"
                     )}
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
+                      borderRadius: 0,
                     }}
                   >
-                    <div className="text-xs text-green-400 uppercase tracking-wider mb-4">
-                      Answer / Definition
+                    <div className="text-xs text-[#5AC8FA] uppercase tracking-wider mb-4 font-mono">
+                      ANSWER / DEFINITION
                     </div>
                     <div className="text-lg text-foreground leading-relaxed">
                       {currentCard.back}

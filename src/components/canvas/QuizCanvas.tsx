@@ -292,10 +292,10 @@ export const QuizCanvas: React.FC<QuizCanvasProps> = ({ content, isStreaming }) 
                   Question {currentQuestionIndex + 1} of {quizData.questions.length}
                 </div>
               </div>
-              {/* Progress bar */}
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
+              {/* Progress bar - Pixel Art Style */}
+              <div className="h-3 bg-[#444444] overflow-hidden border border-[#5AC8FA]">
                 <div
-                  className="h-full bg-blue-500 transition-all duration-300"
+                  className="h-full bg-[#5AC8FA] transition-all duration-300"
                   style={{ width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%` }}
                 />
               </div>
@@ -322,11 +322,11 @@ export const QuizCanvas: React.FC<QuizCanvasProps> = ({ content, isStreaming }) 
                           onClick={() => handleSelectAnswer(index)}
                           disabled={isAnswered}
                           className={cn(
-                            "w-full text-left p-4 rounded-lg border-2 transition-all",
-                            !showResult && !isSelected && "border-border hover:border-blue-500/50 hover:bg-muted/50",
-                            !showResult && isSelected && "border-blue-500 bg-blue-500/10",
-                            showResult && isCorrectAnswer && "border-green-500 bg-green-500/10",
-                            showResult && isSelected && !isCorrectAnswer && "border-red-500 bg-red-500/10",
+                            "w-full text-left p-4 border-[3px] transition-all font-mono",
+                            !showResult && !isSelected && "border-[#444444] bg-[#2a2a2a] hover:border-[#5AC8FA] hover:shadow-[4px_4px_0_#5AC8FA]",
+                            !showResult && isSelected && "border-[#5AC8FA] bg-[#2a2a2a] shadow-[4px_4px_0_#5AC8FA]",
+                            showResult && isCorrectAnswer && "border-green-500 bg-[#2a2a2a] shadow-[4px_4px_0_#22c55e]",
+                            showResult && isSelected && !isCorrectAnswer && "border-red-500 bg-[#2a2a2a] shadow-[4px_4px_0_#ef4444]",
                             isAnswered && !isSelected && !isCorrectAnswer && "opacity-50"
                           )}
                         >
@@ -364,11 +364,11 @@ export const QuizCanvas: React.FC<QuizCanvasProps> = ({ content, isStreaming }) 
                           onClick={() => handleSelectAnswer(value)}
                           disabled={isAnswered}
                           className={cn(
-                            "flex-1 p-4 rounded-lg border-2 transition-all font-medium",
-                            !showResult && !isSelected && "border-border hover:border-blue-500/50",
-                            !showResult && isSelected && "border-blue-500 bg-blue-500/10",
-                            showResult && isCorrectAnswer && "border-green-500 bg-green-500/10",
-                            showResult && isSelected && !isCorrectAnswer && "border-red-500 bg-red-500/10"
+                            "flex-1 p-4 border-[3px] transition-all font-mono font-medium",
+                            !showResult && !isSelected && "border-[#444444] bg-[#2a2a2a] hover:border-[#5AC8FA] hover:shadow-[4px_4px_0_#5AC8FA]",
+                            !showResult && isSelected && "border-[#5AC8FA] bg-[#2a2a2a] shadow-[4px_4px_0_#5AC8FA]",
+                            showResult && isCorrectAnswer && "border-green-500 bg-[#2a2a2a] shadow-[4px_4px_0_#22c55e]",
+                            showResult && isSelected && !isCorrectAnswer && "border-red-500 bg-[#2a2a2a] shadow-[4px_4px_0_#ef4444]"
                           )}
                         >
                           {value ? 'True' : 'False'}
@@ -388,10 +388,10 @@ export const QuizCanvas: React.FC<QuizCanvasProps> = ({ content, isStreaming }) 
                       disabled={isAnswered}
                       placeholder="Type your answer..."
                       className={cn(
-                        "w-full p-4 rounded-lg border-2 bg-background text-foreground",
-                        !isAnswered && "border-border focus:border-blue-500 focus:outline-none",
-                        isAnswered && currentUserAnswer?.isCorrect && "border-green-500 bg-green-500/10",
-                        isAnswered && !currentUserAnswer?.isCorrect && "border-red-500 bg-red-500/10"
+                        "w-full p-4 border-[3px] bg-[#2a2a2a] text-foreground font-mono",
+                        !isAnswered && "border-[#444444] focus:border-[#5AC8FA] focus:shadow-[4px_4px_0_#5AC8FA] focus:outline-none",
+                        isAnswered && currentUserAnswer?.isCorrect && "border-green-500 shadow-[4px_4px_0_#22c55e]",
+                        isAnswered && !currentUserAnswer?.isCorrect && "border-red-500 shadow-[4px_4px_0_#ef4444]"
                       )}
                     />
                     {!isAnswered && (
@@ -412,10 +412,10 @@ export const QuizCanvas: React.FC<QuizCanvasProps> = ({ content, isStreaming }) 
                       placeholder="Type your answer..."
                       rows={4}
                       className={cn(
-                        "w-full p-4 rounded-lg border-2 bg-background text-foreground resize-none",
-                        !isAnswered && "border-border focus:border-blue-500 focus:outline-none",
-                        isAnswered && currentUserAnswer?.isCorrect && "border-green-500 bg-green-500/10",
-                        isAnswered && !currentUserAnswer?.isCorrect && "border-yellow-500 bg-yellow-500/10"
+                        "w-full p-4 border-[3px] bg-[#2a2a2a] text-foreground resize-none font-mono",
+                        !isAnswered && "border-[#444444] focus:border-[#5AC8FA] focus:shadow-[4px_4px_0_#5AC8FA] focus:outline-none",
+                        isAnswered && currentUserAnswer?.isCorrect && "border-green-500 shadow-[4px_4px_0_#22c55e]",
+                        isAnswered && !currentUserAnswer?.isCorrect && "border-yellow-500 shadow-[4px_4px_0_#eab308]"
                       )}
                     />
                     {!isAnswered && (
