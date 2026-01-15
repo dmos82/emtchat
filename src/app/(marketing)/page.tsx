@@ -103,7 +103,7 @@ function PricingTier({
     <div className={cn(
       'p-6 relative transition-all duration-300',
       isPopular
-        ? 'bg-[#2a2a2a] border-[3px] border-[#5AC8FA] shadow-[4px_4px_0_#5AC8FA] scale-105'
+        ? 'bg-[#2a2a2a] border-[3px] border-[#5AC8FA] shadow-[4px_4px_0_#5AC8FA] md:scale-105'
         : isDark
           ? 'bg-[#2a2a2a] border-[3px] border-[#444444] shadow-[4px_4px_0_#444444]'
           : 'bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]',
@@ -337,11 +337,11 @@ export default function LandingPage() {
       <section className="py-20 md:py-32 px-4">
         <div className="container mx-auto max-w-6xl text-center">
           <div className={cn(
-            'inline-block px-4 py-2 mb-6 rounded-full',
-            'bg-yellow-600/20 border border-yellow-500/30',
+            'inline-block px-4 py-2 mb-6',
+            'bg-yellow-600/20 border-2 border-yellow-500/50 shadow-[2px_2px_0_rgba(234,179,8,0.3)]',
           )}>
-            <span className="text-sm font-medium text-yellow-400">
-              🚧 Beta - Built for EMT/Paramedic Students
+            <span className="text-sm font-medium text-yellow-400 font-mono">
+              🚧 BETA - Built for EMT/Paramedic Students
             </span>
           </div>
 
@@ -378,13 +378,13 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div className={cn('flex items-center justify-center gap-6 mt-6 text-sm', isDark ? 'text-gray-500' : 'text-gray-600')}>
+          <div className={cn('flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-6 text-sm', isDark ? 'text-gray-500' : 'text-gray-600')}>
             <span className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
               No credit card required
             </span>
             <span className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
               50 free queries per month
             </span>
           </div>
@@ -464,7 +464,7 @@ export default function LandingPage() {
 
           {/* Enterprise Section */}
           <div className={cn(
-            'mt-12 p-8 text-center',
+            'mt-8 md:mt-12 p-6 md:p-8 text-center',
             isDark
               ? 'bg-[#2a2a2a] border-[3px] border-[#5AC8FA] shadow-[4px_4px_0_#5AC8FA]'
               : 'bg-gray-100 border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]'
@@ -498,10 +498,10 @@ export default function LandingPage() {
       <section className="py-20 md:py-24 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className={cn(
-            'p-8 md:p-12 text-center',
-            'bg-[#5AC8FA] border-[3px] border-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a]',
+            'p-6 md:p-12 text-center',
+            'bg-[#5AC8FA] border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] md:shadow-[6px_6px_0_#1a1a1a]',
           )}>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#1a1a1a] mb-4 font-mono">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#1a1a1a] mb-4 font-mono">
               READY TO ACE YOUR EMT EXAMS?
             </h2>
             <p className="text-lg text-[#1a1a1a]/80 mb-8 max-w-2xl mx-auto">
