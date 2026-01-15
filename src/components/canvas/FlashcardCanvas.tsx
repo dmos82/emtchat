@@ -32,7 +32,7 @@ const FlashcardSkeletonLoader: React.FC = () => (
         <div className="h-6 w-6 rounded bg-gradient-to-r from-muted via-muted-foreground/20 to-muted animate-shimmer" />
         <div className="h-5 w-48 rounded bg-gradient-to-r from-muted via-muted-foreground/20 to-muted animate-shimmer" />
       </div>
-      <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-muted via-muted-foreground/10 to-muted animate-shimmer flex items-center justify-center">
+      <div className="aspect-[4/3] bg-[#2a2a2a] border-[3px] border-[#444444] animate-shimmer flex items-center justify-center">
         <div className="text-center space-y-4 p-8">
           <div className="h-6 w-48 mx-auto rounded bg-muted-foreground/10 animate-shimmer" />
           <div className="h-4 w-64 mx-auto rounded bg-muted-foreground/10 animate-shimmer" style={{ animationDelay: '0.1s' }} />
@@ -182,7 +182,7 @@ export const FlashcardCanvas: React.FC<FlashcardCanvasProps> = ({ content, isStr
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-purple-500" />
+                  <Layers className="h-5 w-5 text-[#5AC8FA]" />
                   <h2 className="font-semibold text-foreground">{flashcardData.title}</h2>
                 </div>
                 <div className="flex items-center gap-2">
@@ -217,9 +217,9 @@ export const FlashcardCanvas: React.FC<FlashcardCanvasProps> = ({ content, isStr
               </div>
               {/* Progress */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <div className="flex-1 h-3 bg-[#444444] overflow-hidden border border-[#5AC8FA]">
                   <div
-                    className="h-full bg-purple-500 transition-all duration-300"
+                    className="h-full bg-[#5AC8FA] transition-all duration-300"
                     style={{ width: `${((currentCardIndex + 1) / cards.length) * 100}%` }}
                   />
                 </div>
