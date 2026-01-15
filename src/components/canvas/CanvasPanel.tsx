@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { X, Copy, Download, Code, FileText, GitBranch, Globe, Loader2, ExternalLink, Table, BarChart3, Image, Save, Check, Sparkles, FileDown, FolderPlus, ChevronDown, FileSpreadsheet, HelpCircle, Layers } from 'lucide-react';
+import { X, Copy, Download, Code, FileText, GitBranch, Globe, Loader2, ExternalLink, Table, BarChart3, Image, Save, Check, Sparkles, FileDown, FolderPlus, ChevronDown, FileSpreadsheet, HelpCircle, Layers, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,6 +9,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { CodeCanvas } from './CodeCanvas';
 import { DocumentCanvas, markdownToHtml } from './DocumentCanvas';
 import { DiagramCanvas } from './DiagramCanvas';
@@ -216,6 +221,9 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
   // Save to My Docs state
   const [isSavingToMyDocs, setIsSavingToMyDocs] = useState(false);
   const [justSavedToMyDocs, setJustSavedToMyDocs] = useState(false);
+
+  // Fullscreen mode state (for quiz/flashcard)
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Detect if content has tabular data
   const hasTableData = useMemo(() => detectTableData(content), [content]);
@@ -1210,6 +1218,18 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
               <span className="text-xs">SVG</span>
             </Button>
           )}
+          {/* Fullscreen toggle - only for quiz and flashcard */}
+          {(type === 'quiz' || type === 'flashcard') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 text-gray-300 hover:text-white hover:bg-gray-700"
+              onClick={() => setIsFullscreen(true)}
+              title="Open fullscreen"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -1265,6 +1285,48 @@ export const CanvasPanel: React.FC<CanvasPanelProps> = ({
           <FlashcardCanvas content={content} isStreaming={isStreaming} />
         )}
       </div>
+
+      {/* Fullscreen Dialog for Quiz/Flashcard */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 flex flex-col overflow-hidden">
+          <DialogTitle className="sr-only">{title || 'Canvas'}</DialogTitle>
+
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-3 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "flex items-center justify-center rounded p-1.5",
+                type === 'quiz' && "bg-cyan-500/10 text-cyan-500",
+                type === 'flashcard' && "bg-purple-500/10 text-purple-500"
+              )}>
+                {getIcon()}
+              </span>
+              <span className="text-base font-medium text-gray-200">
+                {title || 'Untitled'}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700"
+              onClick={() => setIsFullscreen(false)}
+              title="Exit fullscreen"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-auto bg-card">
+            {type === 'quiz' && (
+              <QuizCanvas content={content} isStreaming={isStreaming} />
+            )}
+            {type === 'flashcard' && (
+              <FlashcardCanvas content={content} isStreaming={isStreaming} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
